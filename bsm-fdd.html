@@ -8,14 +8,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --ink:#16222e;          /* mill-steel ink */
-  --ink-soft:#3c4c5c;
-  --paper:#f4f6f8;        /* drafting paper */
+  --ink:#152b1c;          /* mill-steel ink */
+  --ink-soft:#3e5747;
+  --paper:#f7f5ee;        /* drafting paper */
   --card:#ffffff;
-  --line:#d7dee5;
-  --line-soft:#e7ecf0;
-  --gold:#c2932f;         /* wheat gold */
-  --gold-soft:#f6edd8;
+  --line:#dcd8c9;
+  --line-soft:#eae7dc;
+  --gold:#c69331;         /* wheat gold */
+  --gold-soft:#f5ecd6;
   --ce:#2e5e8c;           /* D365 CE */
   --ce-soft:#e3edf6;
   --fo:#3d6b52;           /* D365 F&O */
@@ -23,11 +23,11 @@
   --hr:#a06718;           /* HighRadius */
   --hr-soft:#f7ecd9;
   --sys:#6b7683;          /* integration / system */
-  --sys-soft:#eceff2;
+  --sys-soft:#edeae0;
   --warn:#9a4030;
   --warn-soft:#f7e7e2;
   --radius:10px;
-  --shadow:0 1px 2px rgba(22,34,46,.06),0 4px 14px rgba(22,34,46,.05);
+  --shadow:0 1px 2px rgba(21,43,28,.06),0 4px 14px rgba(21,43,28,.05);
   --display:'Space Grotesk',sans-serif;
   --body:'Public Sans',system-ui,sans-serif;
   --mono:'IBM Plex Mono',monospace;
@@ -39,22 +39,23 @@ body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:
 
 /* ---------- Masthead ---------- */
 .masthead{
-  background:var(--ink);color:#e9eef3;position:relative;overflow:hidden;
+  background:var(--ink);color:#eef3ec;position:relative;overflow:hidden;
 }
 .masthead::before{
   content:"";position:absolute;inset:0;opacity:.35;
-  background-image:linear-gradient(rgba(233,238,243,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(233,238,243,.06) 1px,transparent 1px);
+  background-image:linear-gradient(rgba(238,243,236,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(238,243,236,.06) 1px,transparent 1px);
   background-size:44px 44px;
 }
 .masthead-inner{position:relative;max-width:1180px;margin:0 auto;padding:46px 28px 38px}
+.brandmark{display:block;height:52px;width:auto;background:#fff;border-radius:8px;padding:9px 14px;margin-bottom:22px;box-shadow:0 1px 3px rgba(0,0,0,.18)}
 .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:12px}
 .eyebrow::after{content:"";flex:0 0 56px;height:1px;background:var(--gold);opacity:.6}
 .masthead h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,42px);line-height:1.12;margin:14px 0 8px;letter-spacing:-.01em}
-.masthead .sub{color:#b7c3ce;max-width:760px;font-size:15px}
+.masthead .sub{color:#b8c8ba;max-width:760px;font-size:15px}
 .doc-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
-.doc-meta span{font-family:var(--mono);font-size:11px;letter-spacing:.05em;border:1px solid rgba(233,238,243,.28);border-radius:999px;padding:5px 12px;color:#cfd9e2}
+.doc-meta span{font-family:var(--mono);font-size:11px;letter-spacing:.05em;border:1px solid rgba(238,243,236,.28);border-radius:999px;padding:5px 12px;color:#ccdccd}
 .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:20px;font-size:12.5px}
-.legend .key{display:flex;align-items:center;gap:7px;color:#cfd9e2}
+.legend .key{display:flex;align-items:center;gap:7px;color:#ccdccd}
 .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
 .dot.ce{background:#6fa3d4}.dot.fo{background:#7fbd9b}.dot.hr{background:#e0a94e}.dot.sys{background:#9aa6b2}
 
@@ -194,6 +195,7 @@ footer{border-top:1px solid var(--line);padding:26px 20px 40px;text-align:center
 
 <header class="masthead">
   <div class="masthead-inner">
+    <img class="brandmark" src="https://baystatemilling.com/wp-content/uploads/2026/05/BSM_Logo_horiz_FullColor.svg" alt="Bay State Milling" onerror="this.style.display='none'">
     <div class="eyebrow">Bay State Milling · Consolidated Major Processes</div>
     <h1>Current-State Understanding &<br>Future-State Process Design</h1>
     <p class="sub">Case Management/CERT, Sample Requests, and Customer Requests — orchestrated in D365 Customer Engagement, assessed through HighRadius, executed in D365 Finance &amp; Operations, with status returned to CE for visibility, follow-up, and reporting.</p>
