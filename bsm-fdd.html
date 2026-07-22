@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bay State Milling — Functional Design | Interactive Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#16222e;          /* mill-steel ink */
+  --ink-soft:#3c4c5c;
+  --paper:#f4f6f8;        /* drafting paper */
+  --card:#ffffff;
+  --line:#d7dee5;
+  --line-soft:#e7ecf0;
+  --gold:#c2932f;         /* wheat gold */
+  --gold-soft:#f6edd8;
+  --ce:#2e5e8c;           /* D365 CE */
+  --ce-soft:#e3edf6;
+  --fo:#3d6b52;           /* D365 F&O */
+  --fo-soft:#e2efe7;
+  --hr:#a06718;           /* HighRadius */
+  --hr-soft:#f7ecd9;
+  --sys:#6b7683;          /* integration / system */
+  --sys-soft:#eceff2;
+  --warn:#9a4030;
+  --warn-soft:#f7e7e2;
+  --radius:10px;
+  --shadow:0 1px 2px rgba(22,34,46,.06),0 4px 14px rgba(22,34,46,.05);
+  --display:'Space Grotesk',sans-serif;
+  --body:'Public Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::selection{background:var(--gold-soft)}
+
+/* ---------- Masthead ---------- */
+.masthead{
+  background:var(--ink);color:#e9eef3;position:relative;overflow:hidden;
+}
+.masthead::before{
+  content:"";position:absolute;inset:0;opacity:.35;
+  background-image:linear-gradient(rgba(233,238,243,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(233,238,243,.06) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+.masthead-inner{position:relative;max-width:1180px;margin:0 auto;padding:46px 28px 38px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);display:flex;align-items:center;gap:12px}
+.eyebrow::after{content:"";flex:0 0 56px;height:1px;background:var(--gold);opacity:.6}
+.masthead h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,42px);line-height:1.12;margin:14px 0 8px;letter-spacing:-.01em}
+.masthead .sub{color:#b7c3ce;max-width:760px;font-size:15px}
+.doc-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.doc-meta span{font-family:var(--mono);font-size:11px;letter-spacing:.05em;border:1px solid rgba(233,238,243,.28);border-radius:999px;padding:5px 12px;color:#cfd9e2}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:20px;font-size:12.5px}
+.legend .key{display:flex;align-items:center;gap:7px;color:#cfd9e2}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.dot.ce{background:#6fa3d4}.dot.fo{background:#7fbd9b}.dot.hr{background:#e0a94e}.dot.sys{background:#9aa6b2}
+
+/* ---------- Tab bar ---------- */
+.tabbar{position:sticky;top:0;z-index:50;background:rgba(244,246,248,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.tabbar-inner{max-width:1180px;margin:0 auto;padding:0 20px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.tabbar-inner::-webkit-scrollbar{display:none}
+.tab{appearance:none;background:none;border:none;cursor:pointer;font-family:var(--display);font-weight:500;font-size:14px;color:var(--ink-soft);padding:16px 14px 13px;border-bottom:3px solid transparent;white-space:nowrap;transition:color .15s}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--gold);font-weight:600}
+.tab .n{font-family:var(--mono);font-size:10.5px;color:var(--gold);margin-right:6px}
+.tab:focus-visible{outline:2px solid var(--ce);outline-offset:-2px;border-radius:4px}
+
+/* ---------- Layout ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding:34px 20px 80px}
+.panel{display:none}
+.panel.active{display:block;animation:fade .28s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.panel.active{animation:none}}
+
+h2.sec{font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px}
+h3.sub-sec{font-family:var(--display);font-size:17px;font-weight:600;margin:38px 0 14px;display:flex;align-items:center;gap:10px}
+h3.sub-sec .tick{width:8px;height:22px;background:var(--gold);border-radius:2px;flex:none}
+p.lede{color:var(--ink-soft);max-width:820px;margin-bottom:8px}
+.badge-row{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+.stat-chip{font-family:var(--mono);font-size:11.5px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--ink-soft)}
+.stat-chip b{color:var(--ink)}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.grid{display:grid;gap:14px}
+.grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.grid.cols-2{grid-template-columns:repeat(2,1fr)}
+@media(max-width:900px){.grid.cols-3{grid-template-columns:1fr}.grid.cols-2{grid-template-columns:1fr}}
+
+.proc-card{padding:22px;display:flex;flex-direction:column;gap:10px;border-top:4px solid var(--gold)}
+.proc-card h4{font-family:var(--display);font-size:16.5px}
+.proc-card .purpose{font-size:13.5px;color:var(--ink-soft)}
+.proc-card dl{font-size:13px;display:grid;gap:8px;margin-top:4px}
+.proc-card dt{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;margin-bottom:2px}
+.proc-card dt.ce{color:var(--ce)}.proc-card dt.fo{color:var(--fo)}
+.proc-card dd{color:var(--ink-soft)}
+.proc-card .go{margin-top:auto;align-self:flex-start;font-family:var(--display);font-weight:600;font-size:13px;color:var(--ce);background:var(--ce-soft);border:none;border-radius:8px;padding:8px 14px;cursor:pointer}
+.proc-card .go:hover{filter:brightness(.97)}
+
+/* operating model strip */
+.model{display:flex;align-items:stretch;gap:0;margin-top:16px;overflow-x:auto;padding-bottom:6px}
+.model .node{flex:1;min-width:150px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;position:relative}
+.model .node + .node{margin-left:26px}
+.model .node + .node::before{content:"→";position:absolute;left:-21px;top:50%;transform:translateY(-50%);color:var(--sys);font-size:15px}
+.model .tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-radius:5px;padding:2px 7px;display:inline-block;margin-bottom:7px}
+.tag.ce{background:var(--ce-soft);color:var(--ce)}.tag.fo{background:var(--fo-soft);color:var(--fo)}.tag.hr{background:var(--hr-soft);color:var(--hr)}.tag.sys{background:var(--sys-soft);color:var(--sys)}
+.model .node b{font-family:var(--display);font-size:13.5px;display:block;margin-bottom:3px}
+.model .node span{font-size:12px;color:var(--ink-soft)}
+
+/* pain points */
+.pain{padding:14px 16px;border-left:3px solid var(--warn);background:var(--card);border-radius:0 var(--radius) var(--radius) 0;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-size:13.5px;color:var(--ink-soft)}
+.pain b{color:var(--ink);font-weight:600}
+
+/* stepper */
+.stepper{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x proximity}
+.step{scroll-snap-align:start;flex:0 0 178px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:13px 14px;cursor:pointer;text-align:left;transition:border-color .15s,transform .15s;position:relative}
+.step:hover{border-color:var(--ce)}
+.step.on{border-color:var(--ce);box-shadow:0 0 0 2px var(--ce-soft)}
+.step .num{font-family:var(--mono);font-size:11px;color:var(--gold);font-weight:600}
+.step .lane{position:absolute;top:13px;right:12px;width:9px;height:9px;border-radius:3px}
+.lane.ce{background:var(--ce)}.lane.fo{background:var(--fo)}.lane.hr{background:var(--hr)}.lane.sys{background:var(--sys)}
+.step b{display:block;font-family:var(--display);font-size:13px;line-height:1.3;margin-top:5px;font-weight:600}
+.step-detail{margin-top:6px;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--ce);border-radius:var(--radius);padding:18px 20px}
+.step-detail .who{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-soft);margin-top:8px;display:block}
+.step-detail h5{font-family:var(--display);font-size:15px;margin-bottom:6px}
+.step-detail p{font-size:13.5px;color:var(--ink-soft)}
+
+/* details / accordions */
+details.acc{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+details.acc>summary{list-style:none;cursor:pointer;padding:15px 18px;display:flex;align-items:center;gap:12px;font-family:var(--display);font-weight:600;font-size:14px}
+details.acc>summary::-webkit-details-marker{display:none}
+details.acc>summary::after{content:"+";margin-left:auto;font-family:var(--mono);color:var(--gold);font-size:16px;transition:transform .2s}
+details.acc[open]>summary::after{transform:rotate(45deg)}
+details.acc>summary:hover{background:#fbfcfd}
+details.acc .acc-body{padding:2px 18px 18px;font-size:13.5px;color:var(--ink-soft);border-top:1px solid var(--line-soft)}
+details.acc .acc-body{padding-top:14px}
+.acc-body p{margin-bottom:10px}
+.acc-body .fld{margin-bottom:10px}
+.acc-body .fld b{display:block;color:var(--ink);font-size:12px;font-family:var(--mono);letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
+.acc-body ul{padding-left:18px;display:grid;gap:5px}
+.mini-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.mini-tags span{font-size:11.5px;background:var(--sys-soft);border-radius:6px;padding:3px 9px;color:var(--ink-soft)}
+
+/* tables */
+.tbl-wrap{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-family:var(--mono);font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;text-align:left;color:var(--ink-soft);background:#fafbfc;padding:11px 16px;border-bottom:1px solid var(--line)}
+td{padding:12px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-soft)}
+tr:last-child td{border-bottom:none}
+td.id{font-family:var(--mono);font-size:12px;color:var(--ce);font-weight:600;white-space:nowrap}
+td.role{font-weight:600;color:var(--ink);width:230px}
+tbody tr:hover{background:#fbfcfd}
+
+/* req explorer */
+.req-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.req-search{flex:1;min-width:220px;position:relative}
+.req-search input{width:100%;font-family:var(--body);font-size:14px;padding:10px 14px 10px 38px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+.req-search input:focus{outline:2px solid var(--ce);outline-offset:-1px}
+.req-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--sys)}
+.req-count{font-family:var(--mono);font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.grp-chips{display:flex;flex-wrap:wrap;gap:6px}
+.grp-chip{font-family:var(--display);font-size:12px;font-weight:500;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;cursor:pointer;color:var(--ink-soft)}
+.grp-chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+mark{background:var(--gold-soft);color:inherit;border-radius:2px;padding:0 1px}
+.no-hit{padding:26px;text-align:center;color:var(--ink-soft);font-size:13.5px;display:none}
+
+/* status chips */
+.status-flow{display:flex;flex-wrap:wrap;gap:7px}
+.status-flow span{font-size:12px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--ink-soft)}
+.status-flow span.hi{border-color:var(--gold);background:var(--gold-soft);color:var(--ink)}
+
+/* open decisions */
+.dec{display:flex;gap:12px;padding:13px 16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:9px;font-size:13.5px;align-items:flex-start}
+.dec input{margin-top:3px;accent-color:var(--fo);width:15px;height:15px;flex:none;cursor:pointer}
+.dec b{color:var(--ink);display:block;margin-bottom:2px}
+.dec span{color:var(--ink-soft)}
+.dec.done{opacity:.55}
+.dec.done b{text-decoration:line-through}
+.dec-note{font-size:12px;color:var(--sys);margin:2px 0 14px;font-style:italic}
+
+.callout{border-left:4px solid var(--gold);background:var(--gold-soft);border-radius:0 var(--radius) var(--radius) 0;padding:15px 18px;font-size:13.5px;margin:16px 0}
+.callout b{font-family:var(--display)}
+
+footer{border-top:1px solid var(--line);padding:26px 20px 40px;text-align:center;font-family:var(--mono);font-size:11.5px;color:var(--sys);letter-spacing:.05em}
+.backtop{position:fixed;right:18px;bottom:18px;width:42px;height:42px;border-radius:50%;background:var(--ink);color:#fff;border:none;cursor:pointer;font-size:17px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s}
+.backtop.show{opacity:1;pointer-events:auto}
+@media(max-width:640px){.step{flex-basis:150px}.masthead-inner{padding:34px 20px 30px}}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="eyebrow">Bay State Milling · Consolidated Major Processes</div>
+    <h1>Current-State Understanding &<br>Future-State Process Design</h1>
+    <p class="sub">Case Management/CERT, Sample Requests, and Customer Requests — orchestrated in D365 Customer Engagement, assessed through HighRadius, executed in D365 Finance &amp; Operations, with status returned to CE for visibility, follow-up, and reporting.</p>
+    <div class="doc-meta">
+      <span>CUSTOMER REVIEW DRAFT</span><span>JULY 22, 2026</span><span>D365 CE · HIGHRADIUS · D365 F&amp;O</span><span>PREPARED FOR FUTURE-STATE VALIDATION</span>
+    </div>
+    <div class="legend">
+      <span class="key"><i class="dot ce"></i>D365 Customer Engagement</span>
+      <span class="key"><i class="dot fo"></i>D365 Finance &amp; Operations</span>
+      <span class="key"><i class="dot hr"></i>HighRadius</span>
+      <span class="key"><i class="dot sys"></i>Integration / System</span>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar" role="tablist" aria-label="Document sections">
+  <div class="tabbar-inner">
+    <button class="tab" role="tab" aria-selected="true" data-panel="overview"><span class="n">00</span>Overview</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="cm"><span class="n">01</span>Case Management / CERT</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="sr"><span class="n">02</span>Sample Requests</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="cr"><span class="n">03</span>Customer Requests</button>
+    <button class="tab" role="tab" aria-selected="false" data-panel="next"><span class="n">04</span>Decisions &amp; Next Steps</button>
+  </div>
+</nav>
+
+<main class="wrap">
+
+<!-- ================= OVERVIEW ================= -->
+<section class="panel active" id="overview" role="tabpanel">
+  <h2 class="sec">Executive Summary</h2>
+  <p class="lede">Bay State Milling is designing three major customer-facing processes in D365 Customer Engagement. Although the business outcomes differ, each process benefits from a common operating model: initiate and orchestrate work in CE, apply scenario-specific validations and approvals, use specialized teams or HighRadius where required, hand approved transactional work to D365 F&amp;O, and return downstream status to CE for customer visibility, follow-up, and reporting.</p>
+
+  <h3 class="sub-sec"><span class="tick"></span>Common Operating Model</h3>
+  <div class="model">
+    <div class="node"><span class="tag ce">D365 CE</span><b>Initiate &amp; Orchestrate</b><span>Intake, context, classification, and required information captured at the source.</span></div>
+    <div class="node"><span class="tag ce">D365 CE</span><b>Validate &amp; Approve</b><span>Scenario-specific validations, exception routing, and approvals.</span></div>
+    <div class="node"><span class="tag hr">Specialized</span><b>Assess Where Required</b><span>HighRadius credit assessment, QA/R&amp;D review, specialized teams.</span></div>
+    <div class="node"><span class="tag fo">D365 F&amp;O</span><b>Execute &amp; Post</b><span>Transactions, fulfillment, customer master, inventory, and accounting.</span></div>
+    <div class="node"><span class="tag sys">Integration</span><b>Return Status</b><span>References, statuses, and outcomes flow back to CE for visibility and reporting.</span></div>
+  </div>
+
+  <h3 class="sub-sec"><span class="tick"></span>Processes in Scope</h3>
+  <div class="grid cols-3">
+    <div class="card proc-card">
+      <h4>Case Management / CERT</h4>
+      <p class="purpose">Manage complaints, service issues, quality events, investigations, actions and related financial outcomes.</p>
+      <dl>
+        <div><dt class="ce">CE responsibility</dt><dd>Case intake, classification, risk, investigation, actions, communication, approvals, SLAs and reporting.</dd></div>
+        <div><dt class="fo">F&amp;O / external</dt><dd>Posts credits, rebills, replacements, claims, write-offs or inventory transactions and returns status.</dd></div>
+      </dl>
+      <button class="go" data-goto="cm">Explore process →</button>
+    </div>
+    <div class="card proc-card">
+      <h4>Sample Requests</h4>
+      <p class="purpose">Manage a sample from customer or internal need through validation, approval, fulfillment, delivery and outcome.</p>
+      <dl>
+        <div><dt class="ce">CE responsibility</dt><dd>Request intake, product/customer context, validations, exception approvals, visibility, follow-up and outcome.</dd></div>
+        <div><dt class="fo">F&amp;O / external</dt><dd>Fulfillment, inventory, shipment, freight, billing, costing and item setup; R&amp;D/QA support exceptions.</dd></div>
+      </dl>
+      <button class="go" data-goto="sr">Explore process →</button>
+    </div>
+    <div class="card proc-card">
+      <h4>Customer Requests</h4>
+      <p class="purpose">Manage new customer setup and 15 additional credit or customer-maintenance scenarios.</p>
+      <dl>
+        <div><dt class="ce">CE responsibility</dt><dd>Request intake, classification, financial/non-financial routing, approvals, documents, status and reporting.</dd></div>
+        <div><dt class="fo">F&amp;O / external</dt><dd>HighRadius manages external credit assessment; F&amp;O creates the authoritative customer and completes activation.</dd></div>
+      </dl>
+      <button class="go" data-goto="cr">Explore process →</button>
+    </div>
+  </div>
+
+  <div class="callout"><b>How to use this page.</b> Each process tab walks from current-state pain points through the future-state flow (click any stage for detail), scenario designs, personas, statuses, and a searchable requirements explorer. The final tab consolidates the decisions BSM should confirm before detailed configuration, integration design, and backlog decomposition.</div>
+
+  <div class="badge-row">
+    <span class="stat-chip"><b>60</b> Case Management requirements</span>
+    <span class="stat-chip"><b>30</b> Sample Request requirements</span>
+    <span class="stat-chip"><b>96</b> Customer Request requirements</span>
+    <span class="stat-chip"><b>16</b> customer request scenarios</span>
+    <span class="stat-chip"><b>12</b> sample scenarios</span>
+    <span class="stat-chip"><b>15</b> case scenarios</span>
+  </div>
+</section>
+
+<!-- ================= PROCESS PANELS (rendered by JS) ================= -->
+<section class="panel" id="cm" role="tabpanel"></section>
+<section class="panel" id="sr" role="tabpanel"></section>
+<section class="panel" id="cr" role="tabpanel"></section>
+
+<!-- ================= NEXT STEPS ================= -->
+<section class="panel" id="next" role="tabpanel">
+  <h2 class="sec">Consolidated Decisions, Customer Actions &amp; Next Steps</h2>
+  <p class="lede">The source documents identify several decisions that should be confirmed before detailed configuration, integration design and backlog decomposition. Check items off as they are validated in review sessions — checkmarks are visual aids for this session and reset on reload.</p>
+
+  <h3 class="sub-sec"><span class="tick"></span>Cross-Process Decisions</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Decision / Action</th><th>Why It Is Needed</th><th>Primary Owner(s)</th></tr></thead>
+    <tbody>
+      <tr><td class="role">Confirm system-of-record and integration ownership by data element</td><td>Prevents duplicate maintenance and defines which values return from F&amp;O or HighRadius to CE.</td><td>CE, F&amp;O, Integration, Data Governance</td></tr>
+      <tr><td class="role">Confirm common status, notification and error-handling standards</td><td>Creates a consistent user experience and clear ownership when downstream transactions fail.</td><td>Business Process Owners, CE, F&amp;O, Integration</td></tr>
+      <tr><td class="role">Define security and sensitive-data access</td><td>Credit, food-safety, investigation and financial information require role-based access and appropriate customer/internal separation.</td><td>Security, Legal/Compliance, Process Owners</td></tr>
+      <tr><td class="role">Define document storage, retention, archive, legal hold and purge rules</td><td>Supports audit, regulatory, legal and operational needs without indefinite unmanaged storage.</td><td>Legal, Quality, Finance, Records Management, IT</td></tr>
+      <tr><td class="role">Confirm reporting measures and legacy reports to replace</td><td>Ensures the solution captures the structured fields needed for dashboards and historical reporting.</td><td>Process Owners, Analytics, Leadership</td></tr>
+      <tr><td class="role">Review and update SOPs and decision guidance</td><td>Routing, thresholds, required evidence and approvals should be governed by current SOPs rather than tribal knowledge.</td><td>Case, Sample, Credit/Customer Master Process Owners</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="grid cols-3" style="margin-top:26px">
+    <div>
+      <h3 class="sub-sec" style="margin-top:0"><span class="tick"></span>Case Management</h3>
+      <div id="next-cm"></div>
+    </div>
+    <div>
+      <h3 class="sub-sec" style="margin-top:0"><span class="tick"></span>Sample Requests</h3>
+      <div id="next-sr"></div>
+    </div>
+    <div>
+      <h3 class="sub-sec" style="margin-top:0"><span class="tick"></span>Customer Requests</h3>
+      <div id="next-cr"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>BAY STATE MILLING · CUSTOMER REVIEW DRAFT · D365 CE │ HIGHRADIUS │ D365 F&amp;O</footer>
+<button class="backtop" id="backtop" aria-label="Back to top">↑</button>
+
+<script>
+/* ============================================================
+   DATA
+   ============================================================ */
+const DATA = {};
+
+/* ---------------- CASE MANAGEMENT ---------------- */
+DATA.cm = {
+title:"Case Management / CERT",
+lede:"BSM's CERT application has grown into a central clearinghouse for both operational case management and financial correction requests. The future state uses D365 Customer Service as the front-office system of record — case intake, classification, risk, investigation, actions, communication, approvals, SLAs and reporting — while F&O remains the system of record for posted financial and inventory transactions.",
+principle:"Design principle: CE retains the complete business story — what happened, why action is required, who approved it, what was communicated, and the status of the outcome. F&O executes and posts the accounting or inventory transaction and returns the transaction reference and status to CE. The future design should not simply reproduce the current CERT application; it should separate the case, investigation, action, financial request and transaction lifecycles while preserving a connected end-to-end view.",
+current:[
+["What CERT represents today","CERT tracks customer complaints (damaged bags, burned product, labeling, performance, delivery, documentation), internal incidents and non-conformances, vendor/supplier issues, transportation and delivery problems, documentation/invoicing/order errors, financial requests and claims, and positive value-add interactions."],
+["Intake channels","Email and phone account for roughly 95% of customer-related intake: shared Customer Service mailboxes, direct employee email, and calls to Customer Service, Sales, QA, Technical Services or Logistics. Cases are also triggered proactively from morning meetings, mill scheduling exceptions, shorts lists, audit findings and plant observations. The website is mainly used for general inquiries, not CERT intake. The first person aware of an issue is expected to create the CERT."],
+["Information captured","Customer/vendor/facility/contact and source channel; issue type, category, subcategory, responsible department and facility; order, delivery, invoice, PO, return and shipment references; products, lots, quantities shipped/affected/returned; emails, photos, signed BOLs, COAs, samples, test results; risk assessment, investigation, root cause, disposition, actions; and credit/expense/claim information — though the current financial design is broad and inconsistent."],
+["Classification & help guidance","Type (Customer / Vendor / Internal) → Category → Subcategory. The creator selects the department, supported by a Help-area decision tree, but routing remains dependent on the creator's interpretation."],
+["Risk assessment","The creator scores food-safety risk, customer-concern impact and BSM financial impact at intake. A score of 9+ requires a formal investigation / RCCA. Today any user can change the risk score (comment required, no role-based permissions) — identified as an area requiring future-state governance."],
+["Investigation & actions","When investigation is required, the assigned department gathers evidence, confirms scope, determines root cause, records disposition and defines immediate (contain now), corrective (remove cause) and preventive (prevent recurrence) actions. Requirements vary by category; some cases close without formal investigation."],
+["Approval, financial requests & closure","The current app supports approvals, credit requests, notes and attachments, but the financial request and case lifecycles are blended. BSM needs a controlled process so credits, rebills, deductions, bill-backs and claims do not disappear into email. A credit may be approved and posted while the investigation or customer communication is still open."],
+["Follow-up, portal & reporting","No formal post-closure follow-up today; recurring issues get a new case rather than a reopen. The existing customer portal is read-only (QA docs, specs, order status, invoices, BOLs, COAs, contracts, balances, pricing) and does not support CERT submission — BSM is interested in future portal case submission with simple progress statuses."]
+],
+pains:[
+"<b>Manual creation</b> from email and phone, including copying text and reattaching evidence.",
+"<b>Duplicate entry</b> between CERT, AX, spreadsheets, vendor forms and email.",
+"CERT has become an <b>all-purpose clearinghouse</b> for quality, service and financial processes.",
+"<b>Ownership is not consistently defined</b>; Customer Service and QA absorb too much work.",
+"<b>Risk scoring is subjective</b> and can currently be changed by any user.",
+"Department and action assignments do not work reliably; <b>responsibilities vary by mill</b>.",
+"Required fields and questions are <b>not always clear</b> and have not been reviewed regularly.",
+"Some cases are <b>closed to satisfy the system</b> rather than to confirm effective corrective action.",
+"<b>Repeat issues continue</b> without consistent escalation or effectiveness review.",
+"Duplicates, similar cases and one-to-many source incidents are <b>difficult to connect</b>.",
+"Customer Service <b>cannot always see</b> whether an approved credit or correction was actually posted.",
+"Finance relies on <b>separate tracking</b> for pending and completed requests.",
+"Customer communication and final follow-up are <b>inconsistent</b>.",
+"Operational queues, aging visibility, <b>SLA timers and escalation are limited</b>.",
+"Internal cost and financial impact data are <b>buried, underused or inconsistently entered</b>.",
+"Reporting quality is weakened by <b>free text, missing data and inconsistent classification</b>.",
+"<b>Broad access</b> may expose sensitive financial or investigation details.",
+"<b>Data retention, archiving and purge rules</b> have not yet been defined for the future system."
+],
+stages:[
+["Create Case","An authorized user creates a case from a customer, account, contact, lead/prospect, vendor, carrier or internal facility. Email and phone details, supporting documents and transaction references are captured.","Authorized users","ce"],
+["Classify & Assess","The user selects type, category and subcategory and completes the initial risk assessment. The system applies scenario-specific required fields and identifies possible duplicates or related cases.","Case creator / system","ce"],
+["Route & Review","The system routes the case to the responsible queue, department or facility. A designated reviewer confirms classification, ownership, risk, missing information and whether investigation is required.","System / department reviewer","ce"],
+["Investigate","The investigation owner gathers evidence, determines affected scope, reviews records, records product disposition, identifies root cause and updates risk if new information changes severity.","Investigation owner","ce"],
+["Record & Manage Actions","Immediate, corrective and preventive actions are created as trackable records with owner, due date, evidence, status and effectiveness verification.","Action owners","ce"],
+["Determine Outcome","The case team decides what must be communicated to the customer and whether a credit, rebill, replacement, claim, expense, write-off or recovery is needed.","Case team","ce"],
+["Approve & Handoff","The business request is approved in CE and sent to F&O with the required transaction references, amount, reason and evidence.","Approvers / integration","ce"],
+["Execute in F&O","F&O creates and posts the financial or inventory transaction. Accounting, AR, AP, inventory and cost records remain controlled in F&O.","F&O processor","fo"],
+["Return Status to CE","F&O returns the transaction number, amount, posted date, status and any failure reason to the related financial request in CE.","Integration","sys"],
+["Communicate, Close & Report","BSM completes customer communication, verifies required actions, closes the financial request and case independently, and retains the information for reporting and trend analysis.","Closure owner / Customer Service","ce"]
+],
+scenarios:[
+["Customer Product-Quality Complaint","A customer reports excessive bubbling in dough produced with a BSM flour. Customer Service creates a case, records the customer, product, lot, quantity and application details, attaches the email and requests a sample. The case routes to Plant QA and may include R&D/Technical Services. QA investigates production records, retained samples and test results, identifies root cause and records actions. If product replacement or credit is required, a related financial request is approved in CE and processed in F&O."],
+["Food-Safety or Foreign-Material Concern","A customer reports metal in finished product. The case receives immediate high-risk escalation. Product may be placed on hold, affected lots and customers are identified, QA/Food Safety owns the investigation, and leadership notifications may be triggered. The case remains open until required investigation, root cause, actions, disposition, communication and approvals are complete."],
+["Damaged Delivery","A customer receives 50 damaged bags. Customer Service records the shipment, carrier, quantity, photos and signed BOL. Transportation reviews carrier responsibility and QA determines whether product integrity is affected. The outcome may include replacement, customer credit, extra freight expense and carrier recovery — represented as separate related financial requests under one case."],
+["Late or Short Shipment","A scheduler's shorts list indicates that product may not be ready for an outbound order. Customer Support proactively creates a case before the customer is affected, reviews pickup timing and communicates the issue. The case may be linked to an internal production or equipment parent case if several customers are affected."],
+["Billing or Contract-Pricing Error","A contract price was entered incorrectly because digits were transposed. Customer Service or Billing creates the case to retain the reason and audit history. A full QA-style investigation may not be required if the cause is obvious, but a related credit-and-rebill request is approved and sent to F&O. CE displays the posted credit memo and replacement invoice references."],
+["Documentation Error","A customer does not receive the required COA or receives an incorrect document. The case captures the affected shipment and document, routes to the responsible team, records the correction and identifies whether the issue is isolated or recurring. Financial action is normally not required."],
+["Vendor or Supplier Non-Conformance","BSM receives defective packaging or raw material that is out of specification. The case records the supplier, supplier lot, BSM receipt, affected inventory and evidence. QA and Supply Chain coordinate the supplier response, corrective action and recovery. F&O processes any supplier credit or financial recovery."],
+["Carrier Claim","A carrier damages product in transit. The customer-facing case tracks the customer impact and communication, while a related vendor/carrier case or claim tracks responsibility, evidence and recovery. F&O records the final carrier credit or claim transaction."],
+["Internal Non-Conformance","A plant identifies water on the floor, a failed operator cross-check or a process-control failure. An Internal case records the facility, issue, risk, evidence and actions. BSM must confirm whether this future process remains in CE or moves to a specialized internal quality solution."],
+["Internal Audit Finding","An internal audit finds that a required quality record was not consistently completed. The case routes to the responsible function, tracks root cause, corrective action, due date and effectiveness verification. Customer communication and F&O handoff are not normally required."],
+["One Internal Cause, Multiple Customers","A mill equipment failure causes several delayed or short shipments. One Internal parent case tracks the common cause and plant action. Individual Customer child cases track each customer's orders, communications, SLAs and financial outcomes."],
+["Similar or Recurring Cases","Multiple customers report torn bags from the same packaging line over several months. The cases remain separate but are linked as similar or related. Reporting identifies the recurring pattern and can escalate the issue to Plant Management, Operations leadership, Corporate QA or a formal improvement initiative."],
+["Positive Value-Add Interaction","BSM helps a customer avoid a production shutdown by identifying an alternative product and coordinating urgent delivery. The interaction is tracked for customer history and recognition but does not require risk assessment, investigation, corrective action or F&O processing."],
+["Customer Portal Submission","An authorized customer contact submits a case through the portal, selects from approved external categories, enters order/product information and uploads photographs. The customer sees simple progress statuses and customer-facing updates, while internal investigation, approvals and financial details remain hidden."]
+],
+personas:[
+["Case Creator","Records the issue and initial available details; may be Customer Service, Sales, QA, Technical Services, Logistics, plant personnel or another authorized employee."],
+["Case Coordinator","Ensures the case progresses and customer communication occurs; commonly Customer Service for customer-facing cases."],
+["Department Reviewer","Confirms classification, ownership, risk, missing information and investigation requirement."],
+["Investigation Owner","Gathers evidence, determines scope and root cause, and records findings and disposition."],
+["Action Owner","Completes assigned immediate, corrective or preventive action and attaches evidence."],
+["Customer Communication Owner","Provides acknowledgment, status and resolution communication; usually Customer Service or Sales, with approved QA content where applicable."],
+["Financial Requestor","Creates the related request and documents reason, amount, transaction references and evidence."],
+["Approver","Approves the case outcome or financial request according to issue type, department and amount."],
+["F&O Processor","Creates and posts the financial or inventory transaction and resolves processing exceptions."],
+["Closure Owner","Confirms all required case, action, communication and financial milestones are complete before closure."]
+],
+statuses:["New","Under Review","Waiting for Information","Assigned for Investigation","Under Investigation","Root Cause Identified","Actions in Progress","Pending Approval","Financial Request Pending","Sent to F&O","F&O Processing","Financial Action Completed","Pending Customer Communication","Resolved","Closed","Cancelled","Duplicate"],
+extras:[
+["SLA opportunities","<ul><li><b>Acknowledgment:</b> time from case creation to first customer response.</li><li><b>Initial Review:</b> time to confirm classification, owner, risk and investigation requirement.</li><li><b>Missing Information:</b> time to request required photos, lot, BOL, sample or transaction details.</li><li><b>Investigation:</b> time to provide preliminary or final findings based on risk and scenario.</li><li><b>Corrective Action:</b> time to complete and verify required corrective/preventive actions.</li><li><b>Financial Approval:</b> time to approve or reject the related financial request.</li><li><b>F&O Processing:</b> time from approved handoff to posted transaction and returned status.</li><li><b>Customer Update:</b> maximum interval between updates while a case remains open.</li><li><b>Resolution:</b> total time from creation to resolved/closed status.</li></ul>"],
+["Notifications & escalations","<ul><li>Notify the assigned queue or department when a new case is routed.</li><li>Escalate high-risk or food-safety cases immediately.</li><li>Warn owners before investigation, action, approval or F&O-processing due dates.</li><li>Escalate repeat issues based on same customer, product, lot, facility, category or root cause.</li><li>Notify Customer Service when F&O posts or rejects a financial transaction.</li><li>Use in-app queues and dashboards as the primary work mechanism; use email selectively to avoid notification fatigue.</li></ul>"],
+["Agent scripts, knowledge & help","The current Help-area decision tree and SOP content can be converted into:<ul><li><b>Agent scripts</b> — tell the user what to do next for a scenario (collect photos, confirm the lot, complete risk, route to Transportation).</li><li><b>Knowledge articles</b> — explain how and why to perform a process, including investigation procedures, risk guidance and escalation criteria.</li><li><b>Dynamic checklists</b> — show the evidence and questions required for the selected category and subcategory.</li><li><b>Business rules / workflows</b> — make critical fields required, route work, trigger approval and prevent inappropriate closure.</li><li><b>Macros</b> — automate repetitive actions such as creating a customer acknowledgment email or investigation task.</li></ul>"],
+["Recommended reporting","<ul><li><b>Open Case & Workload Dashboard</b> — cases by status, owner, team, facility, risk and waiting reason.</li><li><b>Aging & SLA</b> — average age, cases over target, approaching breaches and breached milestones.</li><li><b>Volume & Trends</b> — cases by type, category, subcategory, facility, customer, product, lot, supplier and carrier.</li><li><b>Customer Complaint History</b> — open/closed cases, repeat issues, products, financial outcomes and response time by customer.</li><li><b>Product & Lot Analysis</b> — complaints across customers and orders for the same product or lot.</li><li><b>Root Cause & Corrective Action</b> — top causes, overdue actions, effectiveness reviews and repeat cases after action completion.</li><li><b>Risk & Escalation</b> — original/revised scores, high-risk cases, reassessment history and leadership escalation.</li><li><b>Financial Impact & Request Status</b> — requested, approved and posted amounts; pending approvals; F&O status; supplier/carrier recovery.</li><li><b>Related & Parent-Child Cases</b> — one internal source issue and its affected customer cases, plus similar or duplicate patterns.</li><li><b>Leadership Summary</b> — open risk, overdue cases, trends, top issues, financial impact and improvement priorities.</li></ul>"],
+["Data retention & archiving","BSM should define a formal retention schedule before implementing automated deletion. Retention may differ by case type and may be affected by food-safety, regulatory, audit, tax, legal-hold and financial requirements.<ul><li>Confirm how long standard customer, vendor and internal cases must remain searchable in CE.</li><li>Confirm whether high-risk food-safety, recall, audit or legal cases require longer or indefinite retention.</li><li>Determine whether emails, attachments, child cases and related financial requests follow the same period.</li><li>Distinguish active retention, archive and permanent purge.</li><li>Prevent deletion while a legal, regulatory or audit hold is active.</li><li>Confirm who approves purge and how purge activity is audited.</li><li>Maintain historical reporting after records move to archive where required.</li></ul>"]
+],
+reqs:[
+["CM-001","Allow authorized users to create a case against a lead/prospect, customer account, customer contact, vendor, carrier or internal facility.","Examples: Sales creates a case against a prospect; Customer Service creates a complaint against an existing customer; QA creates a vendor or internal non-conformance. Final eligible record types confirmed during detailed design."],
+["CM-002","Support Customer, Vendor and Internal case types, subject to final scope confirmation.","Customer cases are the clearest fit for D365 Customer Service. Confirm whether Vendor and Internal cases remain in CE, move to another solution, or are delivered in a later phase."],
+["CM-003","Allow cases to be created manually and from supported email intake channels.","Manual entry supports phone calls, internal notifications and walk-up issues. Email-to-case creates or associates a case from approved shared mailboxes while retaining the original email and attachments."],
+["CM-004","Capture source channel, reported date, reporter, description and acknowledgment information.","Source examples: email, phone, internal report, audit, portal or system-generated alert. Acknowledgment may include first response date, method, sender and recipient."],
+["CM-005","Allow users to associate one or more products and lot numbers to a case.","A shipment may contain multiple products or several lots of the same product. Record quantity affected by product and lot."],
+["CM-006","Allow users to link orders, delivery orders, invoices, purchase orders, returns, shipments and contracts.","A damaged-delivery case may link to the sales order, delivery, invoice and carrier shipment. A supplier issue may link to the purchase order, receipt and supplier lot."],
+["CM-007","Allow users to upload and retain emails, photographs, BOLs, COAs, samples, test results and other evidence.","Attachments remain linked to the case, visible only to authorized users. Distinguish internal-only from customer-visible attachments."],
+["CM-008","Support configurable Type, Category and Subcategory values.","Administrators maintain values without custom development. Example: Type = Customer; Category = Delivery; Subcategory = Damaged in Transit."],
+["CM-009","Display scenario-specific fields and required information based on classification.","Damaged Delivery requires carrier, BOL, photos and quantity damaged; Product Quality requires product, lot, sample and application details."],
+["CM-010","Provide duplicate detection based on customer, order, invoice, delivery, product, lot, date and issue description.","Warn users before creating a possible duplicate but allow an authorized user to continue when the issue is legitimately separate."],
+["CM-011","Support duplicate, similar, related and parent-child case relationships.","Duplicate = same incident entered twice; Similar = separate incidents with common characteristics; Related = connected cases; Parent-child = one root issue affecting multiple cases."],
+["CM-012","Allow one parent issue to be linked to multiple affected customer cases.","Example: a mill equipment failure is the parent Internal case, while each delayed or short customer shipment is a separate child case."],
+["CM-013","Route cases to the appropriate department, facility, team or queue based on configurable rules.","Routing may depend on Type, Category, Subcategory, facility, risk score, product or customer. Product Quality → Plant QA; Late Delivery → Transportation."],
+["CM-014","Allow a designated reviewer to confirm or change classification and ownership.","The reviewer can reassign a case when the creator selected the wrong category or department. Changes are audited."],
+["CM-015","Support an initial risk assessment covering food-safety, customer and BSM business/financial impact.","Completed during intake using available information. Exact questions and answer values must be validated with BSM."],
+["CM-016","Calculate or derive a total risk result using configurable scoring logic.","BSM discussed a threshold of 9 or higher for formal investigation. Scoring rules, thresholds and labels should be configurable and confirmed."],
+["CM-017","Retain the original and revised risk assessments, including changed by, changed date and reason.","The original score should never be overwritten. Full reassessment history available for audit and trend analysis."],
+["CM-018","Restrict risk reassessment by role or responsible department.","Current state allows any user to change the score with a comment. Future state limits changes to the responsible team or approved roles, such as QA for food-safety risk."],
+["CM-019","Trigger investigation and escalation rules based on risk, category, subcategory and manual override.","High-risk food-safety case triggers immediate QA and leadership notification; a repeat issue may trigger escalation even at a lower initial score."],
+["CM-020","Allow a reviewer to require investigation even when the score is below the configured threshold.","Example: a customer formally requests an RCCA, or the issue is recurring, even though the calculated score is below 9."],
+["CM-021","Support investigation owners, tasks, due dates, evidence and status.","Show who owns the work, what information is required, when it is due and whether it is Not Started, In Progress, Waiting or Complete."],
+["CM-022","Allow users to document affected scope, impacted product, orders, customers and inventory.","Identify all affected lots, customers, shipments, inventory on hand and product in transit before deciding containment and communication."],
+["CM-023","Allow users to document product disposition.","Possible dispositions: release, hold, return, rework, downgrade, destroy, replace or divert to another approved use."],
+["CM-024","Allow users to record root cause and supporting analysis.","May include Five Whys, testing, retained-sample results, equipment review, interviews, production records and attached RCCA documents."],
+["CM-025","Support immediate, corrective and preventive action records.","Immediate action contains the current issue; corrective action removes the confirmed cause; preventive action helps prevent recurrence."],
+["CM-026","Assign action owner, due date, status, evidence and effectiveness-review information.","Example: Maintenance repairs a sifter screen by a due date; QA later confirms the repair was effective through inspections or complaint monitoring."],
+["CM-027","Prevent case closure when required investigation, root cause, disposition or actions are incomplete.","Closure rules vary by case type, category, subcategory and investigation requirement. Low-risk informational cases may close immediately."],
+["CM-028","Support scenario-specific approval requirements.","Approvers may vary by case type, risk, facility, department, action or financial amount: Plant Manager, QA Manager, Sales Manager, Finance or Corporate QA."],
+["CM-029","Allow a case to have zero, one or multiple related financial requests.","One damaged shipment may result in a customer credit, replacement shipment, extra freight expense and carrier recovery."],
+["CM-030","Support financial request types including credit, credit-and-rebill, refund, replacement, expense, write-off, bill-back and supplier/carrier recovery.","The list should be configurable and mapped to the appropriate F&O transaction or downstream process."],
+["CM-031","Capture the business reason, requested amount, approved amount and supporting evidence for a financial request.","Suggested: original invoice/order, requested action, reason, quantity affected, photos/BOL, requested amount, approved amount and approver comments."],
+["CM-032","Support configurable approval routing based on request type, amount, customer, department or role.","A small credit may require one approver, while a high-value credit or write-off may require multiple approval levels."],
+["CM-033","Send approved financial requests and transaction references to F&O.","Only approved and complete requests are sent. Payload may include customer/vendor, legal entity, invoice/order, amount, reason, request type and attachments."],
+["CM-034","F&O should create and post the required financial or inventory transaction.","Examples: customer credit memo, credit-and-rebill, replacement order, inventory adjustment, supplier credit, write-off."],
+["CM-035","The integration should return the F&O transaction number, status, amount, posted date and error reason to CE.","Example: Credit Memo CM-000123, Posted, $2,500, posted July 20. Failures include an actionable error reason."],
+["CM-036","Allow the financial request to close independently from the case.","The financial request may complete while investigation, corrective action or customer communication remains open."],
+["CM-037","Do not automatically close the case solely because a financial transaction is posted.","F&O posting updates the financial outcome. Case closure still depends on required investigation, actions, communication and closure approval."],
+["CM-038","Support configurable case statuses and reason codes.","Possible statuses: New, Under Review, Waiting for Information, Under Investigation, Actions in Progress, Pending Approval, Sent to F&O, Resolved, Closed, Cancelled, Duplicate."],
+["CM-039","Track acknowledgment, review, investigation, action, approval, F&O processing and resolution SLAs.","Example: acknowledge within one business day, complete initial review within two business days and resolve within the applicable target."],
+["CM-040","Support business calendars, pause conditions and escalation for SLA measurement.","Timers may pause while waiting for customer information. Business hours, holidays and facility calendars considered."],
+["CM-041","Provide role-based work queues and dashboards.","Examples: Customer Service queue, Plant QA queue, Transportation queue, Finance approval queue and leadership dashboard."],
+["CM-042","Use in-app notifications and targeted email notifications to reduce notification fatigue.","Dashboards and queues for routine work; email or escalation alerts reserved for high-risk, overdue or approval-required items."],
+["CM-043","Support customer-facing and internal-only notes and attachments.","Customer-visible updates clearly separated from QA investigation notes, internal emails, financial approvals and sensitive corrective-action details."],
+["CM-044","Maintain a complete timeline of emails, phone calls, notes, tasks, status changes and approvals.","One chronological history of the case supporting audit and customer-service review."],
+["CM-045","Allow users to create follow-up activities after resolution.","Examples: confirm replacement delivery, confirm credit receipt, validate product performance or complete an effectiveness review."],
+["CM-046","Allow a new case to be linked to a prior case when an issue resurfaces.","BSM generally creates a new case for a recurring incident; the new case references the previous one for history and reporting."],
+["CM-047","Support repeat-issue thresholds and escalation to management or leadership.","Example: the same customer, product, lot, facility or root cause occurs more than a configured number of times in a defined period."],
+["CM-048","Provide agent scripts based on type, category and subcategory.","A Damaged Delivery script prompts the user to collect the delivery number, carrier, signed BOL, photos, quantity damaged and exposure status."],
+["CM-049","Provide knowledge articles and checklists derived from BSM SOPs and Help-area guidance.","Knowledge articles explain the approved procedure; checklists guide the user through required evidence and investigation questions."],
+["CM-050","Allow approved macros to create standard emails, tasks or records.","Examples: create a customer acknowledgment email, create a QA investigation task, set status to Waiting for Details or create a Financial Request."],
+["CM-051","Provide operational, QA, Sales, Finance and leadership reporting.","Operational users need workload and aging; QA needs product, lot, root cause and actions; Finance needs request status; leadership needs trends and financial impact."],
+["CM-052","Report by customer, product, lot, facility, category, root cause, owner, status, risk and financial impact.","Reports support filtering, drill-down and export. Parent-child and related cases represented correctly in counts."],
+["CM-053","Distinguish estimated case impact from actual posted F&O transaction amounts.","CE may capture estimated product loss, freight, labor or requested credit. F&O remains the source of truth for final posted amounts."],
+["CM-054","Support role-based security for financial, food-safety, investigation and internal information.","Not every user should see credit amounts, sensitive food-safety notes, internal employee information or vendor-claim details."],
+["CM-055","Maintain an audit history for key field and status changes.","Examples: risk-score revisions, classification changes, ownership changes, approvals, closure, reopened/related records and financial status updates."],
+["CM-056","Support configurable retention, archive, legal hold and purge policies.","Retention may differ for standard complaints, food-safety or recall cases, audit findings and financial support. Purge only after approved retention and hold periods expire."],
+["CM-057","Support a future customer portal where authorized contacts can submit and view selected case information.","Portal scope may be phased. Confirm eligible customers, case types and whether customers can see BSM-created cases."],
+["CM-058","The portal should allow customers to upload evidence and provide additional information.","Examples: photos, signed BOL, invoice, lot number, sample details and responses to BSM requests for missing information."],
+["CM-059","The portal should show simplified customer-facing statuses while hiding internal investigation and financial details.","Example statuses: Submitted, Under Review, In Progress, Waiting for Your Information, Resolved, Closed."],
+["CM-060","The portal should control access by authenticated contact and customer account.","A contact sees only authorized account or location cases. Define whether a primary contact can grant and remove access for colleagues."]
+],
+open:[
+["Final scope for Customer, Vendor and Internal cases","Confirm whether all three case types remain in D365 CE or whether some processes move to another system or a later phase."],
+["TraceGains ownership for vendor complaints","Determine whether vendor complaints, supplier non-conformances and corrective actions are managed in CE, TraceGains or an integrated process."],
+["Final Type, Category and Subcategory structure","The classification model drives required fields, routing, reporting, investigation rules, SLAs and approvals."],
+["Department ownership matrix","Define which department, facility, queue or role owns each case type, category and subcategory so cases do not become unassigned."],
+["Risk-assessment questions and scoring values","Confirm the exact food-safety, customer-impact and BSM-impact questions, answer choices and values."],
+["Risk thresholds and escalation logic","Confirm which total scores trigger investigation, leadership escalation, QA involvement, immediate notification or special handling."],
+["Risk reassessment and override roles","Define who can increase or reduce the score and whether approval is required."],
+["Investigation requirements by scenario","Confirm which categories require a full investigation versus cases that may be recorded and closed without one."],
+["QIR requirements","Confirm which scenarios require a Quality Incident Report and whether QIR is a form, checklist or related record."],
+["Root cause, disposition and action requirements","Clear rules for when root cause, disposition, immediate, corrective and preventive actions are mandatory before closure."],
+["Approval roles and thresholds","Define approvers based on case type, risk, financial amount, department, facility and requested outcome."],
+["Financial request types","Final list of supported outcomes: credit, credit-and-rebill, refund, replacement, expense, write-off, bill-back, supplier/carrier recovery."],
+["CE-to-F&O transaction mapping","Map each financial-request type to the correct F&O process or transaction."],
+["Minimum information sent to F&O","Confirm required customer/vendor, legal entity, order, invoice, amount, reason, evidence and approval information before handoff."],
+["F&O status and transaction details returned to CE","Agree which fields return to CE: transaction number, amount, posted date, status and failure reason."],
+["Financial-request closure versus case closure","Confirm a posted transaction can complete the financial request without automatically closing the case."],
+["Customer follow-up requirements","Determine which case types require post-resolution follow-up, when it occurs and who owns it."],
+["Recurring-issue escalation rules","Thresholds for escalating repeated issues involving the same customer, product, lot, facility, category or root cause."],
+["Customer portal scope","Confirm whether portal case submission and tracking are in the initial release or a future phase."],
+["Customer-facing portal statuses","Translate internal statuses into simpler external statuses such as Submitted, Under Review, In Progress and Resolved."],
+["Portal access model","Define which customer contacts may access cases and whether access is controlled by account or location."],
+["Portal-visible information","Determine which comments, attachments, investigation results and resolution details may be shown externally."],
+["Existing reports and Power BI inventory","Review current CERT reports, Power BI dashboards and Excel trackers to identify what must be retained, replaced, consolidated or retired."],
+["Future reporting and KPI definitions","Agree metrics: case aging, SLA performance, repeat issues, top root causes, financial impact, overdue actions, follow-up."],
+["Data-retention periods","Formal retention periods for standard cases, financial support, audit findings, food-safety events, recalls and regulated records."],
+["Archive and purge approach","Decide when records remain active in CE, move to archive and are permanently deleted."],
+["Legal and regulatory holds","Prevent records from being purged while subject to litigation, audit, regulatory review or another formal hold."],
+["CERT SOP updates","Review and update the current SOP so the configured process reflects the approved business process."],
+["Help-area decision tree conversion","Determine which Help content becomes routing rules, agent scripts, knowledge articles, dynamic checklists or required fields."],
+["Scenario-specific investigation templates","Review existing complaint and investigation templates for questions and evidence requirements to incorporate into CE."]
+]
+};
+
+/* ---------------- SAMPLE REQUESTS ---------------- */
+DATA.sr = {
+title:"Sample Request Management",
+lede:"All Sample Requests should start in D365 CE — the front-end system of engagement where users create the request, capture required information, validate it, route any required approvals, and maintain visibility for Sales, Sales Support, Customer Support and leadership. F&O is engaged when the request is ready for fulfillment: order/delivery transactions, inventory relief, shipment, freight, billing, costing, item setup or commercialization support.",
+principle:"Once F&O owns fulfillment, key status information flows back to CE so customer-facing teams can continue to manage communication and follow-up from one place. Handoff to F&O occurs only when required information is complete, validations have passed, the product path is confirmed and required approvals are done.",
+current:[
+["How sample requests start today","Requests originate from customer conversations, email, phone, in-person discussions, trade shows, website inquiries that lead to Sales conversations, marketing/campaign activities, R&D activity, distributor support, or internal sample needs. Sales reps, Sales Support, Customer Support, Business Development, R&D, QA and Marketing users can initiate. The same general process applies across business units, though quantity thresholds and product-specific rules may vary."],
+["Current system & visibility","Sample Requests are entered through the current intranet sample shipment system, which is not fully connected to Monday.com, AX/F&O, R&D project tracking or downstream fulfillment. Status visibility is largely limited to unshipped/shipped, with limited workflow, task routing, exception tracking or outcome capture."],
+["Product selection today","Heavily dependent on product knowledge and tribal knowledge — e.g., matching competitor products like General Mills All Trumps to potential BSM alternatives such as Bouncer or Golden Tiger depending on site and context. The current catalog may allow selecting products or treatment variations not actually produced at a specific mill, driving the need for future product filters, active/inactive flags, site capability checks and recommendation logic."],
+["Sample criteria & fulfillment","BSM is refining the Sample Request SOP. A key threshold between a standard sample and a larger sample was discussed around 250 or 500 lbs (final value pending, possibly varying by BU or product type). Small samples ship via QA/lab parcel (UPS/FedEx); large/LTL samples may require Customer Support to create a Delivery Order in AX/F&O. Prospect large samples may use branch-specific dummy accounts; inventory relief may be handled via manual processes or journals."]
+],
+pains:[
+"<b>Disconnected systems:</b> Sample Request, Monday.com, AX/F&O, R&D OP numbers and SharePoint are not fully connected.",
+"<b>Limited status tracking:</b> primarily unshipped/shipped, with no visibility into approval, F&O handoff, inventory wait, delays or delivery.",
+"<b>Manual handoff to Customer Support/F&O</b> for large samples — no reliable system-driven handoff status.",
+"<b>No formal follow-up process:</b> no required feedback, outcome tracking or escalation.",
+"<b>Product catalog reliability issues:</b> users can select products not made at a site, inactive or discontinued.",
+"<b>Tribal knowledge in product selection:</b> competitive matching and recommendation logic are manual.",
+"<b>Proprietary/private-label risk:</b> danger of sampling customer-specific products to the wrong customer.",
+"<b>Unclear criteria and approval thresholds</b> for large samples, cost and freight decisions.",
+"<b>Donation inconsistency:</b> handled through sample requests, delivery orders, specific accounts or GL write-offs.",
+"<b>Distributor complexity:</b> BSM-shipped vs. distributor-pulled inventory with deductions or billbacks.",
+"<b>Billing and freight complexity:</b> BSM-paid, customer-paid, split charges, customer carrier accounts, credits, write-offs.",
+"<b>R&D/trial disconnected</b> from sample requests — OP numbers, SharePoint docs, trials and commercialization live elsewhere.",
+"<b>International shipping blockers:</b> Canada-to-U.S. samples may need DUNS and Federal ID for customs brokers.",
+"<b>Reporting gaps:</b> no consistent view of volume, open requests, costs, freight, T-codes, outcomes or conversion."
+],
+stages:[
+["Identify Need","Customer, prospect, distributor, internal user, Marketing, or R&D identifies need for a sample.","Sales, Sales Support, Marketing, R&D, Business Development, Customer Support","ce"],
+["Create Request in CE","User creates the Sample Request from Account, Lead, Contact, Opportunity, Campaign, or special request type.","Sales / Sales Support / Requester","ce"],
+["Capture Information","Capture customer/contact, ship-to, product need, quantity, reason, required date, site, docs, freight/billing details.","Requester / Sales Support","ce"],
+["Classify Scenario","CE determines whether the request is standard product, large/LTL, product change, new product, R&D/trial, donation, distributor, or exception.","System / CE with requester input","ce"],
+["Validate Request","Validate required fields, customer/lead context, ship-to, product status, product/site fit, quantity criteria, documentation, restrictions and duplicates.","System / CE; Sales Support; QA if needed","ce"],
+["Route Approval if Required","Route approvals for large samples, private-label/proprietary products, billing/freight exceptions, product changes, new products, R&D/trials, donations, or distributor finance scenarios.","Sales Leadership, Commercial, QA/CQA, R&D, Operations, Finance","ce"],
+["Ready for Fulfillment","Once validation and approval are complete, CE sets status to Ready for Fulfillment.","System / CE","ce"],
+["Handoff to F&O","CE sends request data to F&O for downstream fulfillment, inventory, order/delivery process, freight, billing and costing as applicable.","CE/F&O integration; Customer Support/F&O","sys"],
+["F&O Fulfillment","F&O creates the appropriate transaction/process, validates inventory, ships the sample, posts costs, records billing/freight and captures tracking.","F&O, Customer Support, Traffic, Warehouse, QA, Finance","fo"],
+["Status Returns to CE","F&O sends transaction reference, fulfillment status, ship date, tracking, invoice/billing reference, delivery status and exceptions back to CE.","F&O integration","sys"],
+["Follow-Up & Outcome","CE creates a follow-up task for the responsible person; Sales captures customer response, outcome, next action, and closes the request.","Sales Rep / Account Owner / Distributor Sales","ce"]
+],
+scenarios:[
+["Standard Existing Product Sample","<div class='fld'><b>Scenario</b>The fast path: the product exists, is active, can be sampled, is available at the selected site, quantity is within threshold, and there are no proprietary, billing, freight, or product-change exceptions.</div><div class='fld'><b>Example</b>An existing customer or new Lead requests a standard flour or ingredient sample. Sales selects the Account or creates a lightweight Lead, creates the Sample Request, selects the active product/T-code/site, and submits.</div><div class='fld'><b>Future-state treatment</b>CE validates required fields, product status, ship-to, quantity, site and documentation. If validations pass, no manual approval is required — the request moves to Ready for Fulfillment and hands to F&O only if a downstream transaction or inventory/shipment processing is required.</div><div class='mini-tags'><span>Sales Rep</span><span>Sales Support</span><span>QA/Lab</span><span>F&O Fulfillment if required</span></div>"],
+["Large Sample / LTL / Freight or Billing Exception","<div class='fld'><b>Scenario</b>Applies when the sample exceeds the standard threshold or requires freight/billing decisions. Discussed thresholds around 250 or 500 lbs, with final criteria still being refined.</div><div class='fld'><b>Example</b>A pallet-sized sample cannot reasonably ship via UPS/FedEx. QA/Sales may need Customer Support to create a Delivery Order in AX/F&O and involve Traffic for LTL.</div><div class='fld'><b>Future-state treatment</b>CE flags the request as an exception. Sales Leadership/Commercial and Finance review the cost/freight/billing approach. Once approved and responsibility is documented, CE hands the request to F&O for the appropriate transaction, shipping, inventory and billing.</div><div class='mini-tags'><span>Sales Leadership</span><span>Commercial</span><span>Finance/Billing</span><span>Customer Support</span><span>Traffic</span><span>F&O</span><span>QA/Warehouse</span></div>"],
+["Existing Product Change","<div class='fld'><b>Scenario</b>The base product exists but needs a change or setup before sampling — a different treatment code, grade, pack size, site setup, or product variation.</div><div class='fld'><b>Example</b>A customer needs a variation not currently selectable or not configured for the intended site; or differentiating an existing rice flour product by grade/quality characteristic to avoid confusion.</div><div class='fld'><b>Future-state treatment</b>CE captures the customer need and routes it into Product Change review. Sales Leadership confirms the business reason. QA/CQA, Operations, Finance, Inventory and Commercial review as needed. F&O/Product Master completes required setup before the request can move to Ready for Fulfillment.</div><div class='mini-tags'><span>Sales</span><span>Sales Leadership</span><span>QA/CQA</span><span>Operations</span><span>Finance</span><span>Inventory</span><span>Commercial</span><span>F&O/Product Master</span></div>"],
+["New Product — No R&D Required","<div class='fld'><b>Scenario</b>A product is new to the system or needs setup but does not require formulation development — not every new product automatically requires R&D.</div><div class='fld'><b>Example</b>A new pack size, treatment code, item setup, or product configuration is needed, but the underlying formulation needs no technical development.</div><div class='fld'><b>Future-state treatment</b>CE captures the request and routes to Sales Leadership/business review. If BSM wants to pursue and no R&D is needed, Product/F&O setup begins. QA/CQA, Operations, Finance, Inventory and Product Master determine what is needed before the product is available for sample fulfillment.</div><div class='mini-tags'><span>Sales</span><span>Sales Leadership</span><span>QA/CQA</span><span>Operations</span><span>Finance</span><span>Inventory</span><span>F&O/Product Master</span></div>"],
+["New Product Requiring R&D / Trial / Commercialization","<div class='fld'><b>Scenario</b>The complex path for a product that does not exist and requires development, custom formulation, prototype work, customer feedback, plant trial, and possibly commercialization before fulfillment.</div><div class='fld'><b>Example</b>Custom blends, customer-specific products, pizza mix, grain blends, products with special ingredients, or requests where BSM must develop a formula from the desired end product.</div><div class='fld'><b>Future-state treatment</b>CE captures the initial request and keeps it visible. Sales Leadership first decides whether the opportunity fits BSM strategy, customer value, volume potential, sourcing and capability. If pursued, R&D creates or links an OP/project number, develops the prototype, obtains customer feedback, progresses to plant trial, and eventually moves to commercialization. Only after a valid product/trial/commercial item is available should the request hand to F&O.</div><div class='mini-tags'><span>Sales</span><span>Sales Leadership</span><span>R&D</span><span>R&D Tech Lead</span><span>Customer</span><span>QA/CQA</span><span>Operations</span><span>Finance</span><span>F&O</span></div>"],
+["Proprietary / Private-Label / Customer-Specific Product","<div class='fld'><b>Scenario</b>Applies to private-label, customer-owned formula, NDA/confidential, proprietary, or customer-specific products — a control risk because users should not accidentally send one customer-specific product to another customer.</div><div class='fld'><b>Example</b>A product contains a customer name or customer-specific formula. It may be legitimate to send it to an approved customer location, co-manufacturer, or R&D contact, but the request should not proceed without confirmation.</div><div class='fld'><b>Future-state treatment</b>CE identifies restricted products through product flags or rules and routes for approval before fulfillment — Sales Leadership/Commercial Director, QA/CQA, possibly Legal/Compliance. Approved shipments limited to authorized recipients/addresses.</div><div class='mini-tags'><span>Sales</span><span>Sales Leadership</span><span>Commercial</span><span>QA/CQA</span><span>Legal/Compliance</span><span>F&O Fulfillment</span></div>"],
+["Donation Sample","<div class='fld'><b>Scenario</b>Donations should be a specific request type because current handling is inconsistent — donation accounts, delivery orders, invoices, credits, or GL write-offs.</div><div class='fld'><b>Example</b>A site or business team wants to send product as a donation. Today this might be noted in the sample system or handled through a donation/employee-style account and written off.</div><div class='fld'><b>Future-state treatment</b>CE captures Donation as the request type, recipient, reason, product, quantity, site and approval if required. Finance confirms the donation account, billing/write-off and GL treatment. F&O handles the donation transaction, inventory relief, shipment and cost/write-off; CE receives shipment and reporting visibility.</div><div class='mini-tags'><span>Requester</span><span>Sales/Commercial</span><span>Finance/Billing</span><span>Customer Support</span><span>F&O</span><span>QA/Warehouse</span></div>"],
+["Distributor Support Sample","<div class='fld'><b>Scenario</b>Distributor samples need a separate path — not every distributor sample is a true Lead or Opportunity. The sample may go to a distributor, distributor sales rep, end user, or be pulled from distributor-owned inventory.</div><div class='fld'><b>Example</b>A distributor asks BSM to provide product for an end customer. In some cases BSM ships the sample; in others the distributor pulls from its own inventory and later deducts or billbacks BSM.</div><div class='fld'><b>Future-state treatment</b>CE tracks the activity against the Distributor Account with end-user details if known. If BSM ships, CE hands off to F&O. If the distributor pulls inventory, Finance/F&O may handle deduction, billback, credit, claim, or accrual. Follow-up may require multiple parties because the sample passes through several hands.</div><div class='mini-tags'><span>Distributor Sales</span><span>Sales Rep</span><span>Sales Support</span><span>Finance/AR</span><span>F&O</span><span>Distributor</span><span>End User</span></div>"],
+["Internal R&D / GEC / Bench Work Sample","<div class='fld'><b>Scenario</b>Internal requests should be tracked for traceability but should not necessarily create Leads or Opportunities; follow-up is lighter than for external samples.</div><div class='fld'><b>Example</b>R&D requests a sample for bench work, GEC, internal testing, or formulation review. The recipient may simply need to confirm receipt and whether the sample was usable.</div><div class='fld'><b>Future-state treatment</b>CE supports an internal request type capturing requester, internal recipient, product, quantity, site and purpose. F&O involvement depends on inventory, shipment, costing and whether physical fulfillment is needed.</div><div class='mini-tags'><span>R&D</span><span>QA</span><span>Internal Requester</span><span>F&O if required</span></div>"],
+["Marketing Campaign / Trade Show Sample","<div class='fld'><b>Scenario</b>Marketing or product owners may initiate proactive sends not directly requested by the customer — product awareness, strategic campaigns, or trade shows.</div><div class='fld'><b>Example</b>HealthSense sample boxes sent to target contacts such as an R&D leader at a noodle manufacturer — internally driven by Marketing rather than initiated by the customer.</div><div class='fld'><b>Future-state treatment</b>CE supports campaign-driven requests linked to Campaign, Lead/Contact, Account, or target list. Fulfillment may be batched. Outcome tracking distinguishes campaign awareness from direct opportunity progression.</div><div class='mini-tags'><span>Marketing</span><span>Product Owner</span><span>Sales</span><span>Sales Support</span><span>QA/Fulfillment</span><span>F&O if required</span></div>"],
+["International / Cross-Border Sample","<div class='fld'><b>Scenario</b>Cross-border samples may require additional customer, customs and broker information to avoid delays or returned shipments.</div><div class='fld'><b>Example</b>Canada-to-U.S. samples can be delayed or returned due to border/courier issues; DUNS number and Federal ID were specifically mentioned as potentially required.</div><div class='fld'><b>Future-state treatment</b>CE captures cross-border indicator, destination country, broker/customs fields, DUNS/Federal ID if needed, and documentation requirements. F&O/Traffic provide shipment and exception updates back to CE.</div><div class='mini-tags'><span>Sales</span><span>Sales Support</span><span>Traffic/Transportation</span><span>Customer</span><span>F&O</span><span>Customs/Broker owners</span></div>"],
+["Delays, Issues, Complaints & CERT Escalation","<div class='fld'><b>Scenario</b>Sample issues may not always be formal complaints, but they should not disappear into a black hole — delays, returned shipments, damaged samples, missing documentation, or customer concerns should be visible in CE.</div><div class='fld'><b>Example</b>Samples not shipping for a month, samples damaged in transit, returned shipments, delayed shipments, and missing tracking visibility.</div><div class='fld'><b>Future-state treatment</b>CE captures delay reason, blocker, ETA, owner and next action against the Sample Request. If the issue becomes a true customer complaint, it escalates to Case/CERT based on BSM criteria.</div><div class='mini-tags'><span>Sales</span><span>Sales Support</span><span>Customer Support</span><span>QA</span><span>Traffic</span><span>F&O</span><span>CERT/Case team</span></div>"]
+],
+personas:[
+["Sales Rep / Account Owner","Owns customer need, discovery, Lead/Account/Opportunity context, Sample Request initiation, customer communication, follow-up, and outcome capture."],
+["Sales Leadership / Sales Director","Decides whether BSM should pursue customer requests, especially new product, strategic, high-cost, or exception scenarios."],
+["Sales Support / Customer Support","Coordinates request completion, customer/account details, fulfillment handoff, delivery order support, billing/freight coordination, and operational updates."],
+["Business Development","May initiate or support growth-oriented sample requests, especially VSBU or strategic development scenarios."],
+["Marketing / Product Owner","May initiate campaign-driven samples, trade show samples, strategic product samples, and product positioning requests."],
+["R&D","Owns formulation, prototype development, technical work, OP/project numbers, development documentation, and trial readiness for new products."],
+["R&D Tech Lead","Reviews technical feasibility, formulation readiness, specifications, and trial readiness when R&D is involved."],
+["CQA / QA","Owns quality, compliance, food safety, product documentation, COA/spec/nutritional requirements, and product/sample review."],
+["Site QA / Lab / Fulfillment","Receives and prepares sample shipment, confirms lot/shelf-life/documentation, packages sample, records tracking and shipment details."],
+["Operations / Plant / Mill","Confirms manufacturability, plant/site capability, pack size, production feasibility, trial execution, and availability constraints."],
+["Inventory / Planning / Scheduling","Supports inventory availability, production timing, ETA, and waiting-on-inventory status."],
+["Traffic / Transportation","Supports LTL, carrier, BOL, bulk truck, cross-border, and freight-related shipment execution."],
+["Finance / Billing","Owns freight/product billing, credits, write-offs, standard cost, sample cost, donation GL treatment, and invoice visibility."],
+["Procurement / Supply Chain","Supports new raw materials, outside purchase/resale products, supplier sourcing, and supply feasibility."],
+["F&O / Master Data / Product Setup","Owns F&O item/product setup, fulfillment transaction, sales/delivery order process, inventory impact, shipment references, and integration back to CE."],
+["Customer / Distributor / End User","Receives sample, tests product, provides feedback, approves/rejects, requests another sample, or moves forward commercially."]
+],
+statuses:["Identified","Draft","Submitted","Validation","Pending Approval","Ready for Fulfillment","Sent to F&O","In Fulfillment","Waiting on Inventory","Shipped","Delivered","Follow-Up Due","Outcome Captured","Closed"],
+extras:[
+["Information expected back from F&O","<ul><li><b>F&O transaction reference</b> — see the downstream order, delivery, sample order or invoice reference without leaving CE.</li><li><b>Fulfillment status</b> — sent to F&O, transaction created, in fulfillment, waiting on inventory/docs, shipped, delayed, delivered, cancelled, or closed.</li><li><b>Ship date</b> — supports customer communication and follow-up timing.</li><li><b>Tracking number / link</b> — lets Sales and the customer track the shipment.</li><li><b>Carrier / freight details</b> — UPS/FedEx, LTL, BOL, customer carrier account and traffic visibility.</li><li><b>Invoice / billing reference</b> — when customer pays product, freight, both, or credits/write-offs apply.</li><li><b>Cost and freight information</b> — sample cost reporting, budget visibility, leadership reporting.</li><li><b>Delivery status</b> — confirms receipt and triggers follow-up tasks.</li><li><b>Delay reason / exception status</b> — blockers and next actions without chasing multiple teams.</li><li><b>Documents sent</b> — whether required COA, specification, nutritional, product data sheet, or customer letter was provided.</li></ul>"],
+["Recommended CE reporting","<ul><li><b>Open Sample Requests</b> — by status, owner, BU, site, product, customer, required date.</li><li><b>Pending Approval Dashboard</b> — requests awaiting Sales Leadership, QA/CQA, R&D, Finance, or Operations.</li><li><b>Ready for Fulfillment / F&O Handoff Queue</b> — requests ready or awaiting downstream transaction creation.</li><li><b>Fulfillment / Shipment Tracking Dashboard</b> — F&O reference, status, ship date, carrier, tracking, delivery, delays.</li><li><b>Customer Sample History</b> — all samples by Account/Contact/Ship-To with product/T-code, date, related Opportunity, outcome.</li><li><b>Follow-Up Required Dashboard</b> — shipped/delivered samples with incomplete or overdue follow-up.</li><li><b>Sample Outcome Report</b> — accepted / rejected / resample / R&D required / converted / no response / no fit.</li><li><b>Sample Cost / Freight / Billing Report</b> — product cost, freight, customer-paid vs BSM-paid, invoice/credit/write-off, donation costs.</li><li><b>Product / T-Code Sampling Report</b> — frequently sampled products, customer interest, product trends.</li><li><b>Large Sample / LTL Report</b> — thresholds, LTL shipments, Traffic involvement, BOL, freight status, cost.</li><li><b>Donation & Distributor Sample Reports</b> — donations, distributor deductions/billbacks, non-standard paths.</li><li><b>R&D / New Product Sample Pipeline</b> — product review, R&D project, OP number, trial, commercialization, availability.</li></ul>"]
+],
+reqs:[
+["SR-001","Allow authorized users to create a Sample Request in D365 CE.","Applies to Sales, Sales Support, Customer Support, Business Development, Marketing, R&D, QA, and other approved requesters."],
+["SR-002","Allow creation against an Account, Contact, Lead, Opportunity, Campaign, Distributor Account, or approved internal/special request type.","Supports traceability without forcing every sample into an Opportunity."],
+["SR-003","Allow users to create a lightweight Lead when a prospect does not already exist in CE.","Minimum details: company/contact name, contact information if available, sample reason, and ship-to."],
+["SR-004","Allow the requester to capture essential sample information.","Sample type, reason, requested date, required-by date, customer/contact, ship-to, product need, product/T-code, quantity, site, documents, freight, billing."],
+["SR-005","Support multiple Sample Request types.","Standard, large/LTL, product change, new product, R&D/trial, donation, distributor support, campaign, internal R&D/GEC, emergency/service recovery."],
+["SR-006","Allow one or more products on a request when fulfilled from the same site.","If products come from multiple sites, guide the user to create separate requests or split fulfillment."],
+["SR-007","Provide product search, filters, and product status visibility.","Active/inactive/discontinued/restricted status, site capability, product/T-code, pack size, and relevant attributes."],
+["SR-008","Prevent or warn when selected product/site combinations are invalid.","Example: selected product or treatment variation is not produced at the selected mill."],
+["SR-009","Support product recommendation or competitive match guidance as a future capability.","Match customer application or competitor product to BSM product options."],
+["SR-010","Validate required information before submission or F&O handoff.","Customer/lead, ship-to, product, quantity, reason, request type, site, documentation, freight/billing, sample criteria."],
+["SR-011","Identify exception scenarios and route approvals only when required.","Large sample, product change, new product, R&D/trial, private label/proprietary, donation, billing/freight, distributor finance."],
+["SR-012","Support approval routing capturing decision, approver, date/time, comments, and conditions.","Approvers may include Sales Leadership, Commercial, QA/CQA, R&D, Operations, Finance."],
+["SR-013","Support large sample / LTL threshold logic.","Thresholds such as 250 or 500 lbs and BU/product-specific criteria, configurable or documented."],
+["SR-014","Allow users to capture freight and billing responsibility.","BSM pays all, customer pays freight, customer pays product, customer pays both, split cost, customer UPS/FedEx account."],
+["SR-015","Support proprietary/private-label/customer-specific product safeguards.","Warn, block, or require approval before restricted products are sampled."],
+["SR-016","Allow users to indicate when a product does not exist or cannot be selected.","Route to product review, product change, new product, R&D, outside purchase, distributor referral, or decline path."],
+["SR-017","Support linkage between Sample Request and Product Change / New Product / R&D / Trial / Commercialization records.","OP/project number, product request, trial request, item number, and commercialization status where available."],
+["SR-018","Keep the Sample Request visible in CE while R&D/product/trial work occurs outside the standard fulfillment path.","Prevents the request from disappearing during longer development processes."],
+["SR-019","Support a Ready for Fulfillment status before F&O handoff.","Handoff only when required data, approvals, product path, freight/billing, and documentation are complete."],
+["SR-020","Integrate Sample Requests from CE to F&O when downstream processing is required.","F&O transaction type subject to F&O design: Delivery Order, Sales Order, sample order, $0 order, journal, invoice-only, etc."],
+["SR-021","Allow F&O to return fulfillment updates back to CE.","F&O reference, status, ship date, carrier, tracking, delivery status, invoice/billing reference, cost, exceptions."],
+["SR-022","Generate customer shipment notifications when samples ship.","Notification includes tracking details where available."],
+["SR-023","Create a follow-up task for the responsible Sales Rep or owner after shipment or delivery.","Timing may vary by request type, shipping method, and customer context."],
+["SR-024","Require or prompt outcome capture before closing external customer Sample Requests.","Accepted, rejected, resample requested, R&D required, converted to opportunity/order/contract, no response, no fit, distributor referral, issue/delay."],
+["SR-025","Support lighter follow-up for internal samples.","Internal R&D/GEC samples may only require receipt confirmation or internal feedback."],
+["SR-026","Allow users to record delays, blockers, returned shipments, damaged samples, missing documentation, and next actions.","Issues remain visible on the request and escalate to Case/CERT when appropriate."],
+["SR-027","Capture cross-border/customs fields when required.","DUNS number, Federal ID, broker/customs documentation, destination country, export requirements."],
+["SR-028","Display sample history on the Account/Customer profile.","Product/T-code, sample date, ship-to, outcome, tracking, related opportunity, F&O references."],
+["SR-029","Support reporting and dashboards for Sample Requests.","Open requests, pending approvals, ready for fulfillment, shipped, follow-ups due, outcomes, cost, freight, large samples, donations, distributor samples, T-code usage, conversion."],
+["SR-030","Maintain an audit trail of submission, approvals, changes, handoff, shipment, follow-up, and closure.","Supports traceability, accountability, and reporting."]
+],
+open:[
+["Final sample criteria and thresholds","Defines when a sample remains standard vs. requiring approval, Delivery Order, LTL, or F&O processing."],
+["F&O transaction type by scenario","Delivery Order vs. Sales Order vs. sample order vs. $0 order vs. inventory journal vs. no transaction."],
+["Small sample inventory/cost process","Decide whether all samples create F&O transactions or small samples remain lightweight."],
+["Prospect/sample-only account strategy","How F&O handles samples for Leads/prospects that are not yet formal customers."],
+["Donation process standardization","Consistent account, GL/write-off, transaction, approval, and reporting process."],
+["Distributor-handled sample process","Deduction, billback, credit, accrual, or claims process when a distributor pulls inventory."],
+["Product restriction flags","Reliable proprietary/private-label/customer-specific indicators and approval rules."],
+["Product recommendation data","Product tagging, competitive match data, application attributes, site capability data."],
+["R&D/project integration design","How CE links to AX/OP numbers, R&D projects, SharePoint documents, trials, commercialization status."],
+["F&O visibility fields back to CE","Exact fields and integration approach for reference, status, shipment, tracking, invoice, cost, delivery."],
+["Follow-up and outcome requirements by sample type","External customer samples likely need stricter follow-up than internal or campaign samples."],
+["Case/CERT escalation rules","When sample delays/issues become formal cases or complaints."],
+["Cross-border/customs data model","Required fields such as DUNS, Federal ID, broker info, destination-specific documentation."]
+]
+};
+
+/* ---------------- CUSTOMER REQUESTS ---------------- */
+DATA.cr = {
+title:"Customer Request Management",
+lede:"BSM currently handles new-customer setup, credit changes and customer maintenance through a Power App, external and internal forms, SharePoint templates, email coordination and customer setup in AX. The future state introduces one Customer Request framework in D365 CE: every request begins in CE, is classified by request type, and is routed by financial impact. Financial-impact requests follow the Credit Management Process — including the external customer application and assessment in HighRadius — while non-financial requests receive a simpler business review.",
+principle:"D365 F&O remains the authoritative system for customer master data, Book-To/Bill-To/Ship-To relationships, credit limits, payment terms, hold status and operational activation. CE retains request history, documents, approvals, decision visibility and the status returned from F&O. Approval and F&O handoff are separate decisions: a scheduled credit review may be approved with no change to the current limit or terms — documented and closed in CE without an F&O update.",
+groups:{A:"Intake & Management",B:"Classification & Routing",C:"Information & Documents",D:"HighRadius & External Application",E:"Internal Form & Credit Decision",F:"Non-Financial Basic Review",G:"F&O Handoff & Activation",H:"Scenario Business Rules",I:"Statuses, Security & Reporting"},
+current:[
+["Current request process","Sales, Sales Support or Customer Service starts a request using the current credit-management Power App and supporting forms. The package is reviewed by Credit, then used to create or update the customer in AX. Sales Support, Customer Service, Traffic, QA, Tax and other teams complete downstream setup before the customer or Ship-To can transact."],
+["External & internal forms","The external form captures customer-provided information: purchasing and AP contacts; Book-To, Bill-To and Ship-To addresses; emergency contacts; portal requirements; QA and COA contacts; shelf-life and testing requirements; Traffic contacts; appointment and delivery requirements; international/special handling. The internal BSM form captures Sales Representative, sales channel, customer chain, business scope/type, products, plant and pack size, specifications, existing relationships, NOVA access, anticipated usage and monthly value, requested credit amount, billing currency, freight terms and carrier."],
+["Current request types","New Customer and Reactivation (reactivation may require an updated credit review depending on inactivity). Credit Limit Change (requested amount and business reason; review depth depends on change, exposure, payment history). Payment Terms Extension (a separate SharePoint template today; financial impact / cost of capital was discussed). New Ship-To and Maintenance (controlled setup, but a new Ship-To does not normally require a full credit review)."]
+],
+pains:[
+"<b>Duplicate data entry</b> across forms, Power App, email and AX.",
+"<b>Manual coordination</b> and limited visibility into the next owner.",
+"Financial and non-financial requests are <b>not consistently separated</b>.",
+"The complete credit application, external reports and internal review package require <b>manual assembly</b>.",
+"Payment-term requests use a <b>separate template and approval path</b>.",
+"Customer creation and downstream setup are <b>not one visible end-to-end process</b>.",
+"Users need clearer visibility into whether the customer is <b>approved, created, pending setup or active</b>.",
+"No-change reviews and CE-only updates <b>should not be sent unnecessarily to F&O</b>."
+],
+stages:[
+["Create Request in CE","User creates a Customer Request in D365 CE and links it to the applicable Lead, Opportunity, Account, Contact, Quote, existing customer record, or system-generated trigger.","Sales, Sales Support, Customer Service, Credit Team, System","ce"],
+["Select Request Type","User selects the applicable request type: New Customer, Reactivation, Credit Limit Change, Payment Terms Change, New Ship-To, Address Change, Contact Change, Tax Update, Traffic Update, QA Update, or another maintenance request.","Requester","ce"],
+["Prepopulate & Complete","CE prepopulates available customer, commercial, relationship, credit and F&O information. The requester completes scenario-specific fields and uploads supporting documents.","System, Sales, Sales Support, Customer Service","ce"],
+["Validate Completeness","CE and the assigned reviewer confirm required fields, documents, relationships and ownership information. Duplicate customers, requests, addresses, contacts and locations are checked.","System, Sales Support, Customer Service","ce"],
+["Determine Financial Impact","CE determines whether the request changes credit exposure, payment terms, legal ownership, financial responsibility, credit-hold status, or another financial condition — Financial vs. Non-Financial path.","System, Sales Support, Credit Team where needed","ce"],
+["6A · Financial Review (HighRadius)","CE sends minimum initiation information to HighRadius, which creates the external application and secure customer link. The customer completes it and uploads documents. HighRadius validates, performs credit assessment, and returns results to CE. CE generates the internal BSM form and notifies the Credit Team.","System, HighRadius, Customer, Sales Support","hr"],
+["6A.1 · Credit Team Decision","The Credit Team reviews HighRadius results, external application, payment history, expected exposure, internal BSM information and documents, then records the final decision in CE.","Credit Analyst, Credit Manager, Authorized Approver","ce"],
+["6B · Non-Financial Basic Review","The authorized business owner validates the request and confirms it does not change credit exposure, terms, ownership, responsibility or hold status. The request is approved, returned, or reclassified as financial.","Sales Support, Customer Service, Traffic, QA, Tax, Master Data","ce"],
+["Determine F&O Update Need","After review completes, CE determines whether the approved outcome requires customer creation or an F&O customer-master, financial, operational, or location update. Approval and F&O handoff are separate decisions.","System, Request Owner, Sales Support","ce"],
+["Record Outcome or Send Package","When no F&O update is needed, CE records the decision and closes. Otherwise CE prepares the approved package — customer data, relationships, documents, financial decisions, setup requirements, approvals — validates it and sends it to F&O.","System, Sales Support, Integration","sys"],
+["F&O Creation / Update","F&O creates or updates the customer and applicable Book-To, Bill-To, Ship-To, financial, tax, contact, product and operational records.","F&O Customer Master Team, Credit/Finance","fo"],
+["Departmental Setup & Activation","Required setup tasks are assigned and completed by Credit, Sales Support, Customer Service, Traffic, QA, Tax and Customer Master. Once complete, F&O sets the customer or Ship-To to Active — unavailable for shipping until mandatory setup is done.","Departments, F&O Customer Master Team","fo"],
+["Synchronize & Close","F&O returns authoritative information — customer number, status, relationships, credit limit, terms, hold status, activation date. CE updates related records, notifies stakeholders and formally closes the request with a retained audit trail.","Integration, System, Sales Support, Request Owner","sys"]
+],
+scenarios:[
+["1 · New Customer","<div class='fld'><b>What it is</b>A qualified prospect is ready to purchase and BSM must establish a new customer relationship — both the credit decision and the broader setup required before ordering and shipping.</div><div class='fld'><b>Example</b>A prospect has completed commercial discussions for a flour product, expects a defined monthly volume and requests open credit terms. Sales knows expected products, mill, projected usage, requested limit and primary contact; the customer still completes the external credit application.</div><div class='fld'><b>Session notes</b>A new customer request is not only a credit application — it may include purchasing, AP, QA, COA, Traffic, portal, delivery, tax and customer-service information. The external and internal forms should become structured data (PDF generated when needed). The customer remains Pending Setup until all required F&O tasks are complete.</div>"],
+["2 · Customer Reactivation","<div class='fld'><b>What it is</b>An existing customer is inactive, blocked or no longer transacting and wants to resume business. The record can be reused, but credit and operational information may need refreshing.</div><div class='fld'><b>Example</b>A customer that has not purchased for several years asks Sales to restart ordering. BSM must determine whether prior credit application, ownership, tax documents, locations and payment history are current enough to reuse.</div><div class='fld'><b>Session notes</b>No fixed inactivity period was established — BSM should define how inactivity length, payment history, risk and document age determine review depth. Reactivation should not automatically require a completely new setup when existing information remains valid.</div>"],
+["3 · Change of Ownership","<div class='fld'><b>What it is</b>The legal owner or the party financially responsible for an existing customer changes. Because the obligor has changed, this is materially different from normal maintenance.</div><div class='fld'><b>Example</b>A customer location remains the same, but the business is acquired by another legal company. BSM is now extending credit to a different legal entity and must reassess the relationship.</div><div class='fld'><b>Session notes</b>A simple legal-name correction, address correction or contact change should not be incorrectly routed as ownership change. Preserve the history of the former relationship and clearly show the effective date of new ownership.</div>"],
+["4 · Credit Limit Change","<div class='fld'><b>What it is</b>BSM or the customer requests an increase or decrease to the existing credit limit — focused on additional exposure and whether the customer can support it.</div><div class='fld'><b>Example</b>Sales expects a customer to double monthly purchases and requests an increase. Credit needs projected sales, payment history and current exposure before deciding.</div><div class='fld'><b>Session notes</b>The same core workflow supports increases and decreases, but review depth and approval authority may differ. Sessions support a distinct decision point for whether F&O actually needs updating after the Credit decision.</div>"],
+["5 · Payment Terms Change","<div class='fld'><b>What it is</b>The customer or Sales requests terms that differ from the current or standard terms. Longer terms may increase BSM's cost and exposure even when the nominal limit is unchanged.</div><div class='fld'><b>Example</b>A customer on Net 30 requests Net 60. Sales provides the reason and projected volume; Credit and the business evaluate payment risk and the cost of carrying the receivable an additional 30 days.</div><div class='fld'><b>Session notes</b>The future-state request replaces the separate SharePoint template and retains the financial calculation and approval history in CE. The exact cost-of-capital formula and commercial approval thresholds still require confirmation.</div>"],
+["6 · New Product Line","<div class='fld'><b>What it is</b>An existing customer begins purchasing a materially different product line — possibly creating additional exposure, another legal entity or mill, and new operational or quality setup.</div><div class='fld'><b>Example</b>An established customer begins purchasing oat ingredients. The expected new volume may require a higher credit limit and new customer-item, QA or legal-entity setup.</div><div class='fld'><b>Session notes</b>Sessions specifically discussed oat ingredients as a scenario possibly requiring broader Credit review. Define materiality rules so minor additions do not automatically trigger a full application.</div>"],
+["7 · Significant Increase in Exposure","<div class='fld'><b>What it is</b>Expected purchases, open receivables or total exposure increase materially even if the request is not described as a credit-limit change.</div><div class='fld'><b>Example</b>An Opportunity indicates a customer will significantly increase annual purchases. The existing limit and terms may be insufficient; Credit reassesses total expected exposure before the business is finalized.</div><div class='fld'><b>Session notes</b>Uses the same underlying Credit-review workflow as a limit or terms request, triggered by overall change in business exposure. Define exposure thresholds and approval levels.</div>"],
+["8 · Scheduled or Alert-Triggered Review","<div class='fld'><b>What it is</b>A review initiated by time, a risk alert, payment behavior or another monitoring event rather than a customer-requested change.</div><div class='fld'><b>Example</b>A customer reaches its annual review date, or HighRadius reports a negative credit event. Credit may decide no action is required, or that limit, terms or hold status should change.</div><div class='fld'><b>Session notes</b>Authorized Credit users should be able to reassess or override recommendations with a recorded reason. This scenario demonstrates why a completed review does not always result in an F&O update.</div>"],
+["9 · Credit Hold or Release","<div class='fld'><b>What it is</b>Place, retain, modify or release a credit hold due to overdue balances, exposure, disputes, risk events or agreed payment arrangements.</div><div class='fld'><b>Example</b>A customer is on hold for overdue invoices but provides a payment commitment. Credit decides whether to release completely, release with conditions or retain.</div><div class='fld'><b>Session notes</b>The detailed order-release process can be designed separately — this scenario focuses on the customer-level hold decision and visibility. Only authorized Credit users approve or override hold decisions.</div>"],
+["10 · New Ship-To","<div class='fld'><b>What it is</b>An active customer needs a new physical delivery location — affecting customer master and operational setup but normally not the party responsible for payment.</div><div class='fld'><b>Example</b>An existing Bill-To customer opens a new warehouse. BSM needs address, receiving hours, delivery contacts, QA contacts and routing instructions; the existing Bill-To remains financially responsible.</div><div class='fld'><b>Session notes</b>A key point in the sessions: a new Ship-To should not automatically trigger a full Credit review. Although non-financial, it still requires controlled validation, F&O creation and activation.</div>"],
+["11 · Address Change","<div class='fld'><b>What it is</b>The address of an existing customer, Bill-To or Ship-To needs correction or change. Most are master-data maintenance; some may indicate a legal or financial change.</div><div class='fld'><b>Example</b>A customer moves its warehouse to another street address. Bill-To and ownership stay the same, so it follows basic review. If a new legal entity is introduced, it must be reclassified.</div><div class='fld'><b>Session notes</b>The basic review prevents a true ownership change from processing as simple maintenance. Preserve old and new values and the effective date for audit.</div>"],
+["12 · Contact or Invoice Recipient Change","<div class='fld'><b>What it is</b>Add, change or remove a customer contact, contact role, email address or invoice recipient. Key decision: is the contact used only by Sales in CE, or operationally required in F&O?</div><div class='fld'><b>Example</b>Sales adds a marketing contact for relationship management — CE only. A separate AP contact who receives invoices must be sent to F&O and linked to the correct Bill-To.</div><div class='fld'><b>Session notes</b>Sessions noted some contacts should live only in CE, especially Sales-focused ones. The requestor identifies the contact purpose and system-of-record treatment.</div>"],
+["13 · Tax or Exemption Update","<div class='fld'><b>What it is</b>Tax identification, exemption status or certificate information changes — Tax/Finance validation, but normally no creditworthiness assessment.</div><div class='fld'><b>Example</b>An existing customer provides a new resale certificate with a future expiration. Tax validates and updates the applicable customer or location in F&O.</div><div class='fld'><b>Session notes</b>Support certificate expiration reminders and retain document and approval history. Tax setup may apply to specific legal entities, Bill-Tos or Ship-Tos and must be routed accordingly.</div>"],
+["14 · Traffic or Logistics Update","<div class='fld'><b>What it is</b>Freight responsibility, carrier, routing, receiving hours, appointment or delivery instructions change for an existing customer or location.</div><div class='fld'><b>Example</b>A customer changes receiving hours and now requires delivery appointments. Traffic validates, updates the location setup, and ensures carrier/routing instructions are available for fulfillment.</div><div class='fld'><b>Session notes</b>The external form includes Traffic contacts, appointment needs, international requirements and special handling (lift-gate, driver unload, lumper, sort/segregate). Changes materially altering financial responsibility should be reclassified.</div>"],
+["15 · QA or Product Specification Update","<div class='fld'><b>What it is</b>Customer-specific quality, COA, product specification, shelf-life, testing, batch or labeling requirements change.</div><div class='fld'><b>Example</b>A customer begins requiring a custom COA and additional testing for a product. QA reviews whether BSM can meet the request and updates the customer-item quality setup before the requirement takes effect.</div><div class='fld'><b>Session notes</b>Sessions referenced standard vs. custom COA, special testing, shelf-life needs and customer-specific product associations. The approved specification and document version should be traceable to the request.</div>"],
+["16 · Customer Group or Reporting Change","<div class='fld'><b>What it is</b>Customer group, chain, sales channel, business classification or reporting hierarchy changes — focused on classification accuracy and system ownership rather than credit risk.</div><div class='fld'><b>Example</b>Sales Operations moves a customer between reporting chains while the legal customer, Bill-To and credit terms are unchanged. The hierarchy may update in CE, F&O or both depending on field ownership.</div><div class='fld'><b>Session notes</b>The internal form currently captures sales channel, customer chain, business scope and type. Detailed design must define the system of record for each classification field.</div>"]
+],
+personas:[
+["Sales Representative","Identifies the business need; creates or sponsors the request; provides commercial context; communicates with the customer; accepts approved conditions."],
+["Sales Support","Completes request data; validates information; coordinates documents; completes internal BSM fields; prepares the approved F&O package; monitors status."],
+["Customer Service","Supports request intake and operational contacts; validates ordering, invoice and location information; completes assigned setup tasks."],
+["Customer / Prospect","Completes the external credit application and provides required contacts, addresses, financial information and supporting documents."],
+["HighRadius","Creates the external application; sends the secure link; validates completeness; obtains agency and reference information; performs risk assessment; returns results to CE."],
+["Credit Analyst / Manager","Reviews results and expected exposure; records the final credit decision, approved limit, terms, hold, conditions and next review date."],
+["Traffic / Logistics","Reviews freight, routing, receiving, appointment and delivery requirements and completes F&O setup."],
+["QA / CQA","Reviews COA, product specification, testing, shelf-life and customer-item requirements and completes quality setup."],
+["Tax / Finance","Reviews tax and exemption documentation and configures tax treatment."],
+["Customer Master / F&O Team","Creates or updates customer and location records, completes master-data activities and controls final activation."],
+["Integration / System","Exchanges data, creates notifications, reports errors and synchronizes authoritative F&O information to CE."]
+],
+statuses:["Draft","Submitted","Pending Information","Pending Basic Review","Sent to Credit Management","External Application in Progress","Assessment Complete","Pending Credit Team Review","Additional Information Required","Approved","Approved with Conditions","Declined","Cancelled","Ready for F&O","Sent to F&O","F&O Processing","Pending Setup Tasks","Active / Complete","Closed"],
+extras:[
+["Expected business benefits","<ul><li>One consistent request process for both financial and non-financial changes.</li><li>Reduced re-entry of customer and setup information.</li><li>Clear distinction between requests requiring a credit assessment and those requiring only a basic review.</li><li>Customer-facing credit application and document collection through HighRadius.</li><li>System-generated internal BSM review information in CE.</li><li>Controlled F&O handoff after approval rather than before all required information is available.</li><li>Better visibility into ownership, status, outstanding information and setup tasks.</li><li>Complete audit trail for decisions, approvals, documents and system updates.</li></ul>"],
+["Visibility & reporting","<ul><li>Requests by type, owner, status, business unit and aging.</li><li>Time from request creation to customer application, Credit decision, F&O handoff and activation.</li><li>Requests waiting for customer information, Credit review, F&O processing or setup tasks.</li><li>Approved versus requested credit limit and payment terms.</li><li>Financial versus non-financial request volume.</li><li>No-change decisions closed in CE without F&O updates.</li><li>Customers and Ship-Tos pending activation.</li><li>Upcoming scheduled reviews, external alerts and expiring tax or supporting documents.</li></ul>"]
+],
+reqs:[
+["CR-HLR-001","Allow authorized Sales, Sales Support, Customer Service, Credit and other designated teams to create a Customer Request in D365 CE.","Confirm the authorized-role security matrix and business-unit visibility.","A"],
+["CR-HLR-002","Provide one Customer Request record type capable of tracking all 16 defined request scenarios.","Use one Customer Request entity/record with a configurable Request Type field.","A"],
+["CR-HLR-003","Assign a unique request number to every Customer Request.","Use CE auto-numbering; the identifier remains unique across all scenarios.","A"],
+["CR-HLR-004","Allow a request to be created from and linked to a Lead, Opportunity, Account, Contact, quote, contract or system-generated review trigger.","Support creation from related records and automated review triggers.","A"],
+["CR-HLR-005","Allow the requestor to identify the request type, reason, priority, requested effective date and requested outcome.","Configurable choice/date fields.","A"],
+["CR-HLR-006","Prepopulate available customer, contact, commercial and synchronized F&O information to reduce duplicate entry.","Depends on CE/F&O integration and field-level source-of-record decisions.","A"],
+["CR-HLR-007","Support assignment and reassignment of the request to an owner or responsible team.","Support individual owners, teams and queues; retain reassignment history.","A"],
+["CR-HLR-008","Allow users to save a request as Draft before submission.","Draft requests do not initiate routing, HighRadius or F&O processing.","A"],
+["CR-HLR-009","Retain a complete history of request ownership, status, comments, documents, approvals and field changes.","Audit includes time stamps and the user/system that made each change.","A"],
+["CR-HLR-010","Allow authorized users to cancel a request and record the cancellation reason.","Cancellation is role-controlled and requires a reason.","A"],
+["CR-HLR-011","Support the 16 request types.","New Customer, Reactivation, Change of Ownership, Credit Limit Change, Payment Terms Change, New Product Line, Significant Increase in Exposure, Scheduled/Alert-Triggered Review, Credit Hold or Release, New Ship-To, Address Change, Contact/Invoice Recipient Change, Tax or Exemption Update, Traffic or Logistics Update, QA or Product Specification Update, Customer Group or Reporting Change. Types drive dynamic fields, routing and downstream actions.","B"],
+["CR-HLR-012","Determine or allow an authorized user to identify whether a request has financial impact.","System-derived classification with authorized manual override.","B"],
+["CR-HLR-013","Financial-impact determination considers credit exposure, payment terms, legal ownership, financial responsibility, credit hold and other material risk changes.","Configurable financial-impact questions and business rules.","B"],
+["CR-HLR-014","Route financial-impact requests to the Credit Management Process.","Financial requests invoke the separate Credit Management subprocess.","B"],
+["CR-HLR-015","Route non-financial requests to the appropriate basic review team without requiring a credit assessment.","No HighRadius application is created for a confirmed non-financial request.","B"],
+["CR-HLR-016","Allow an authorized reviewer to reclassify a non-financial request as financial when new information identifies impact.","Reclassification restarts required validation and routing.","B"],
+["CR-HLR-017","Record the original and final impact classification and the reason for any override.","Retain both classifications for audit and reporting.","B"],
+["CR-HLR-018","Use request type and impact classification to determine required fields, documents, reviewers, approvers, statuses and downstream actions.","The central rules-engine requirement for scenario-specific behavior.","B"],
+["CR-HLR-019","Allow Sales and Sales Support to enter customer, commercial, product, volume, value, mill, legal entity, currency and relationship information.","Fields are dynamic by request type and prepopulated where possible.","C"],
+["CR-HLR-020","Allow users to upload and associate supporting documents with the request.","Confirm permitted file types, size limits, storage location and security.","C"],
+["CR-HLR-021","Support external customer information including purchasing, AP, addresses, portal, QA/COA, Traffic, delivery and special-handling requirements.","Confirm which external information is collected in HighRadius versus CE/Power Pages.","C"],
+["CR-HLR-022","Support internal BSM information: sales channel, customer chain, business type, products, plant/pack, expected usage/value, requested credit amount, currency, freight terms.","Internal BSM data remains structured in CE and reusable in generated forms.","C"],
+["CR-HLR-023","Display current and proposed values for existing-customer maintenance requests.","Current-value / proposed-value presentation for change requests.","C"],
+["CR-HLR-024","Validate mandatory fields and documents based on request type before allowing submission or routing.","Submission/routing gates configurable by request type.","C"],
+["CR-HLR-025","Perform duplicate checks for customer, address, Ship-To, contact and open request records where applicable.","Define match criteria, warning vs. blocking behavior and override authority.","C"],
+["CR-HLR-026","Allow routing to another team or user for completeness review before external or downstream submission.","Completeness-review assignment before HighRadius or F&O handoff.","C"],
+["CR-HLR-027","Allow reviewers to return a request for missing or corrected information without closing it.","Returning preserves data, documents and audit history.","C"],
+["CR-HLR-028","Allow internal and external request information to be generated as a PDF summary when required.","PDF is an output; structured CE data remains the system record.","C"],
+["CR-HLR-029","Apply minimum-information checks before a financial-impact request can be sent to HighRadius.","The readiness gate before the CE-to-HighRadius integration call.","D"],
+["CR-HLR-030","Minimum-information checks validate identity, primary contact, request type, expected business, applicable legal entity/currency and other required initiation fields.","Confirm the exact mandatory HighRadius initiation fields with the vendor.","D"],
+["CR-HLR-031","Send the CE request number and required initiation information to HighRadius.","Include a correlation/request ID for end-to-end tracking.","D"],
+["CR-HLR-032","Receive and store the HighRadius application identifier and application status.","Display integration/application status and last synchronization date in CE.","D"],
+["CR-HLR-033","HighRadius creates the external credit application and generates a secure customer link for applicable scenarios.","Confirm HighRadius licensing, workflow and secure-link configuration.","D"],
+["CR-HLR-034","HighRadius prepopulates the application using information received from CE where supported.","Subject to HighRadius field and API support.","D"],
+["CR-HLR-035","HighRadius allows the customer to complete legal, ownership, bank, trade-reference, financial and supporting-document information.","Confirm required fields and documents by financial request type.","D"],
+["CR-HLR-036","HighRadius validates application completeness and requests missing information from the customer.","HighRadius owns customer reminders and incomplete-application follow-up where supported.","D"],
+["CR-HLR-037","HighRadius obtains or supports credit-agency, business verification, trade-reference, bank-reference and financial-statement information as configured.","Confirm selected agencies, reference processes and regional availability.","D"],
+["CR-HLR-038","HighRadius performs risk assessment and provides risk results, recommendations, red flags and supporting references to CE.","Define the exact results, scores, recommendations and document links returned to CE.","D"],
+["CR-HLR-039","Display HighRadius application and assessment status in CE.","Sales and Credit see status without opening HighRadius.","D"],
+["CR-HLR-040","Support reuse of prior application information when permitted by BSM recency and risk rules.","Define recency, risk and ownership-change rules for reuse.","D"],
+["CR-HLR-041","Generate the internal BSM review form in CE after HighRadius results are received.","Generation occurs only after required HighRadius results are available.","E"],
+["CR-HLR-042","The internal form combines HighRadius application/assessment information with CE commercial and operational information.","Maintain source attribution for fields populated from HighRadius versus CE.","E"],
+["CR-HLR-043","Allow Sales Support or another designated user to complete BSM-specific fields that cannot be sourced automatically.","Identify BSM-only fields and the responsible role.","E"],
+["CR-HLR-044","Notify the assigned Credit Team when the application, assessment and internal form are ready for review.","Notification includes request link, status and outstanding review actions.","E"],
+["CR-HLR-045","Allow the Credit Team to review application data, reports, references, payment history, exposure, risk, requested limit/terms and existing relationship information.","Sensitive financial documents must be role-restricted.","E"],
+["CR-HLR-046","Support Credit decisions of Approved, Approved with Different Limit or Terms, Prepay/Wire in Advance, Additional Information Required, Declined and Cancelled.","Standardized decision values for routing, reporting and F&O handoff.","E"],
+["CR-HLR-047","Allow authorized Credit users to override a recommendation or reassess risk with a recorded reason.","Override requires appropriate authority, reason and audit history.","E"],
+["CR-HLR-048","Capture the final approved credit limit, payment terms, hold status, conditions, decision date, approver and next review date.","These values become the approved financial outcome for downstream processing.","E"],
+["CR-HLR-049","Allow Additional Information Required decisions to route back to the customer, HighRadius, Sales or Sales Support while keeping the request open.","The return path identifies the responsible party and due date.","E"],
+["CR-HLR-050","Apply configurable approval authority based on request type, risk, requested limit, payment terms and exception level.","Confirm approval thresholds, hierarchy and exception rules.","E"],
+["CR-HLR-051","Provide a basic review path for non-financial requests without initiating a HighRadius credit application.","For operational/master-data requests with no credit assessment.","F"],
+["CR-HLR-052","The basic review validates completeness, documents, customer/location relationships, duplicate records and authorization.","Standard checklist with scenario-specific additions.","F"],
+["CR-HLR-053","The basic review requires confirmation that ownership, financial responsibility, credit limit, payment terms and hold status are unchanged.","A positive confirmation is required before non-financial approval.","F"],
+["CR-HLR-054","Route non-financial requests to the appropriate reviewer: Sales Support, Customer Service, Traffic, QA, Tax or Master Data.","Routing based on request type, legal entity, facility and responsibility.","F"],
+["CR-HLR-055","Allow the basic reviewer to approve, return, reject or reclassify the request.","Rejection and return reasons are mandatory and reportable.","F"],
+["CR-HLR-056","Allow CE-only updates to be completed and closed without an F&O handoff.","Examples: CE-only Sales contacts or internal reporting notes.","F"],
+["CR-HLR-057","Allow approved non-financial F&O-maintained updates to be sent directly to F&O after approval.","Examples: approved New Ship-To, Tax, Traffic or QA updates.","F"],
+["CR-HLR-058","Include a separate decision after approval to determine whether F&O must be created or updated.","Approval and F&O handoff are separate decisions.","G"],
+["CR-HLR-059","Prevent unnecessary F&O updates for no-change decisions, informational reviews and CE-only data.","Examples: no-change reviews and CE-only contacts/classifications.","G"],
+["CR-HLR-060","Validate the approved F&O package before transmission.","Validate required fields, approvals, documents and effective dates.","G"],
+["CR-HLR-061","The approved package includes applicable customer master, relationships, contacts, approved financial values, tax, Traffic, QA, product and setup information.","Package content is scenario-specific rather than one fixed payload.","G"],
+["CR-HLR-062","Transmit the CE request number, approved data, effective date, decision reference and supporting-document references to F&O.","Use request number and decision reference as integration correlation identifiers.","G"],
+["CR-HLR-063","F&O creates or updates customer, Book-To, Bill-To and Ship-To records as required.","Confirm customer hierarchy and relationship mapping in F&O.","G"],
+["CR-HLR-064","F&O applies approved credit limit, payment terms, credit hold and financial status changes.","F&O remains the authoritative source for financial master values.","G"],
+["CR-HLR-065","F&O creates or assigns required departmental setup tasks based on request type and scenario.","Task templates configurable by scenario, legal entity and facility.","G"],
+["CR-HLR-066","Support setup tasks for Customer Master/Credit, Sales Support, Customer Service, Traffic, QA, Tax, contacts and reporting/classification.","Confirm mandatory versus optional tasks and task ownership.","G"],
+["CR-HLR-067","The customer or Ship-To remains Pending Setup and unavailable for shipping until all required activation tasks are complete.","Activation gate prevents ordering/shipping until required tasks are done.","G"],
+["CR-HLR-068","F&O returns customer number, relationship/location identifiers, status, approved limit, terms, hold status, activation date and setup completion to CE.","Define authoritative return fields and processing statuses.","G"],
+["CR-HLR-069","Update the related CE Account, Opportunity and Customer Request using authoritative information returned from F&O.","Update CE related records without overwriting CE-owned information.","G"],
+["CR-HLR-070","Support integration acknowledgements, error messages, retries and ownership for failed HighRadius or F&O transactions.","Define retry frequency, error queue, support owner and user notifications.","G"],
+["CR-HLR-071","Support configurable reactivation rules based on inactivity period, last review date, payment history, risk and document recency.","Confirm inactivity thresholds and when a full versus targeted review is required.","H"],
+["CR-HLR-072","Treat a true change of ownership as new financial responsibility and route it to a full Credit Management Process.","A legal ownership change is not processed as simple maintenance.","H"],
+["CR-HLR-073","Allow a Credit Limit Change decision to close in CE without F&O update when the approved limit is unchanged.","A key example of the separate F&O-update decision.","H"],
+["CR-HLR-074","Support payment-term financial-impact calculations and related commercial approvals when configured.","Confirm formula, data sources and required commercial approvers.","H"],
+["CR-HLR-075","Support materiality rules for New Product Line and Significant Exposure scenarios.","Define materiality thresholds by volume, sales, exposure or product line.","H"],
+["CR-HLR-076","Support scheduled and alert-triggered reviews that may result in no change and a future next-review date.","No-change outcomes record rationale and next-review date in CE.","H"],
+["CR-HLR-077","Support customer-level Credit Hold and Release requests and synchronize changed hold status to F&O.","Detailed order-release workflow may be designed separately.","H"],
+["CR-HLR-078","A New Ship-To request normally follows the non-financial path and does not require a full Credit review unless financial responsibility changes.","Reclassify only when the Ship-To changes financial responsibility or exposure.","H"],
+["CR-HLR-079","Reclassify an Address Change when it indicates a new legal entity, ownership or financial responsibility.","Use legal-entity/ownership questions during the address review.","H"],
+["CR-HLR-080","Distinguish CE-only Sales contacts from operational, invoice, AP, QA, Traffic or location contacts that require F&O synchronization.","Add a CE-only / F&O-required contact indicator and role rules.","H"],
+["CR-HLR-081","Support tax-certificate effective and expiration dates and reminder notifications.","Reminders before expiration and escalation after.","H"],
+["CR-HLR-082","Support Traffic requirements including freight responsibility, routing, receiving hours, appointments and special handling.","Align fields with Traffic and F&O transportation/setup requirements.","H"],
+["CR-HLR-083","Support QA requirements including standard/custom COA, testing, shelf life, maximum batches, specification and customer-item relationships.","Align fields with QA, customer-item and specification setup.","H"],
+["CR-HLR-084","Support system-of-record rules for customer group, chain, sales channel, business type and reporting hierarchy fields.","Define the system of record and synchronization direction for each field.","H"],
+["CR-HLR-085","Support the full request status model.","Draft through Closed — confirm final status names, transitions and which statuses are system-controlled.","I"],
+["CR-HLR-086","Retain a time-stamped status history.","Records date/time, user/system and prior/new value.","I"],
+["CR-HLR-087","Notify users when a request or task is assigned, returned, approved, declined, sent to HighRadius, ready for Credit review, sent to F&O, failed integration or completed.","Notifications configurable by role, request type and event.","I"],
+["CR-HLR-088","Support reminders and escalation for customer applications, missing information, overdue reviews, F&O processing and setup tasks.","Confirm SLA durations, escalation recipients and business calendars.","I"],
+["CR-HLR-089","Provide Sales and Sales Support visibility into the final decision, approved limit/terms, F&O processing status and activation status.","Visibility on Account, Opportunity and Customer Request where appropriate.","I"],
+["CR-HLR-090","Restrict access to sensitive credit, financial and supporting documents based on role and business need.","Field/document security for credit and financial information.","I"],
+["CR-HLR-091","Support business-unit, legal-entity and role-based visibility where required.","Confirm cross-business-unit and cross-legal-entity access rules.","I"],
+["CR-HLR-092","Provide dashboards and reporting for request volume, status, aging, cycle time, owner, bottlenecks, Credit outcomes, no-change reviews, pending activation and integration errors.","Dashboards support drill-through to the underlying request.","I"],
+["CR-HLR-093","Report requested versus approved credit limit and payment terms for applicable scenarios.","For approval variance and commercial/credit analysis.","I"],
+["CR-HLR-094","Report upcoming scheduled reviews, overdue reviews and expiring documents.","Includes scheduled reviews, tax certificates and other expiring documents.","I"],
+["CR-HLR-095","Retain an auditable record of all approvals, overrides, decisions, documents, comments and integration events.","Retained according to approved policy.","I"],
+["CR-HLR-096","Support configurable data-retention and archival rules for Customer Requests, applications, documents and decisions.","Confirm retention periods, legal holds, archive location and purge authority.","I"]
+],
+open:[
+["HighRadius form capabilities","Confirm form and integration capabilities, reusable application data and external assessment outputs."],
+["Financial-impact and materiality rules","Finalize impact classification, reactivation, exposure and materiality rules."],
+["Approval thresholds","Confirm approval authority by request type, risk, limit, terms and exception level."],
+["Payment-term cost-of-capital calculation","Confirm the formula, data sources and required commercial approvers."],
+["Reuse of prior application data","Define recency, risk and ownership-change rules for reuse."],
+["CE-only versus F&O contact and classification fields","Define which contacts and classifications live in CE only versus requiring F&O synchronization."],
+["Required activation tasks by scenario","Define mandatory setup tasks per request type before activation."],
+["Integration timing and error ownership","Confirm timing, retries, error queues and support ownership for HighRadius and F&O integration."],
+["Security and retention requirements","Confirm role-based access to sensitive credit information and retention/purge policy."]
+]
+};
+
+/* ============================================================
+   RENDER ENGINE
+   ============================================================ */
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const laneName = {ce:"D365 CE",fo:"D365 F&O",hr:"HighRadius",sys:"Integration"};
+
+function renderProcess(key){
+  const d = DATA[key], el = document.getElementById(key);
+  let h = `<h2 class="sec">${d.title}</h2><p class="lede">${d.lede}</p>`;
+  h += `<div class="badge-row">
+        <span class="stat-chip"><b>${d.stages.length}</b> stages</span>
+        <span class="stat-chip"><b>${d.scenarios.length}</b> scenarios</span>
+        <span class="stat-chip"><b>${d.personas.length}</b> personas</span>
+        <span class="stat-chip"><b>${d.reqs.length}</b> requirements</span>
+        <span class="stat-chip"><b>${d.open.length}</b> open decisions</span></div>`;
+  h += `<div class="callout"><b>Design principle.</b> ${d.principle}</div>`;
+
+  /* current state */
+  h += `<h3 class="sub-sec"><span class="tick"></span>Current-State Understanding</h3>`;
+  d.current.forEach(([t,b])=>{ h += `<details class="acc"><summary>${t}</summary><div class="acc-body"><p>${b}</p></div></details>`; });
+
+  /* pains */
+  h += `<h3 class="sub-sec"><span class="tick"></span>Current-State Pain Points</h3><div class="grid cols-2">`;
+  d.pains.forEach(p=>{ h += `<div class="pain">${p}</div>`; });
+  h += `</div>`;
+
+  /* stepper */
+  h += `<h3 class="sub-sec"><span class="tick"></span>Future-State Process — click a stage</h3>`;
+  h += `<div class="stepper" id="${key}-stepper" role="tablist" aria-label="${d.title} stages">`;
+  d.stages.forEach((s,i)=>{
+    h += `<button class="step${i===0?" on":""}" data-i="${i}" aria-label="Stage ${i+1}: ${s[0]}">
+          <span class="num">${String(i+1).padStart(2,"0")}</span><span class="lane ${s[3]}" title="${laneName[s[3]]}"></span><b>${s[0]}</b></button>`;
+  });
+  h += `</div><div class="step-detail" id="${key}-stepdetail"></div>`;
+
+  /* scenarios */
+  h += `<h3 class="sub-sec"><span class="tick"></span>Scenario Design & Examples</h3>`;
+  d.scenarios.forEach(([t,b])=>{
+    const body = b.startsWith("<") ? b : `<p>${b}</p>`;
+    h += `<details class="acc"><summary>${t}</summary><div class="acc-body">${body}</div></details>`;
+  });
+
+  /* personas */
+  h += `<h3 class="sub-sec"><span class="tick"></span>Personas</h3><details class="acc"><summary>Roles & responsibilities (${d.personas.length})</summary><div class="acc-body" style="padding:0"><div class="tbl-wrap" style="border:none;border-radius:0"><table><thead><tr><th>Role</th><th>Responsibility</th></tr></thead><tbody>`;
+  d.personas.forEach(([r,x])=>{ h += `<tr><td class="role">${r}</td><td>${x}</td></tr>`; });
+  h += `</tbody></table></div></div></details>`;
+
+  /* statuses */
+  h += `<h3 class="sub-sec"><span class="tick"></span>Recommended Statuses</h3><div class="status-flow">`;
+  d.statuses.forEach(s=>{ h += `<span${/F&O|Approved|Closed|Resolved/.test(s)?' class="hi"':""}>${s}</span>`; });
+  h += `</div>`;
+
+  /* extras */
+  if(d.extras && d.extras.length){
+    h += `<h3 class="sub-sec"><span class="tick"></span>Supporting Design Detail</h3>`;
+    d.extras.forEach(([t,b])=>{ h += `<details class="acc"><summary>${t}</summary><div class="acc-body">${b}</div></details>`; });
+  }
+
+  /* requirements explorer */
+  h += `<h3 class="sub-sec"><span class="tick"></span>High-Level Requirements</h3>
+  <div class="req-tools">
+    <div class="req-search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" id="${key}-q" placeholder="Filter requirements — try &quot;risk&quot;, &quot;portal&quot;, &quot;approval&quot;…" aria-label="Filter requirements">
+    </div>
+    <span class="req-count" id="${key}-count"></span>
+  </div>`;
+  if(d.groups){
+    h += `<div class="grp-chips" id="${key}-chips" style="margin-bottom:12px"><button class="grp-chip on" data-g="*">All</button>`;
+    Object.entries(d.groups).forEach(([g,label])=>{ h += `<button class="grp-chip" data-g="${g}">${g} · ${label}</button>`; });
+    h += `</div>`;
+  }
+  h += `<div class="tbl-wrap"><table id="${key}-tbl"><thead><tr><th style="width:110px">ID</th><th>Requirement</th><th>Notes / Examples</th></tr></thead><tbody>`;
+  d.reqs.forEach(r=>{
+    h += `<tr data-g="${r[3]||""}"><td class="id">${r[0]}</td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`;
+  });
+  h += `</tbody></table><div class="no-hit" id="${key}-nohit">No requirements match that filter.</div></div>`;
+
+  /* open decisions */
+  h += `<h3 class="sub-sec"><span class="tick"></span>Open Design Decisions & Customer Validation Items</h3>
+  <p class="dec-note">Check items as they are confirmed in review — checkmarks are session aids and reset on reload.</p>`;
+  d.open.forEach(([t,n],i)=>{
+    h += `<label class="dec"><input type="checkbox" data-dec><span><b>${t}</b><span>${n}</span></span></label>`;
+  });
+
+  el.innerHTML = h;
+
+  /* stepper behavior */
+  const detail = document.getElementById(key+"-stepdetail");
+  const showStage = i => {
+    const s = d.stages[i];
+    detail.style.borderLeftColor = getComputedStyle(document.documentElement).getPropertyValue("--"+s[3]).trim() || "var(--ce)";
+    detail.innerHTML = `<h5><span style="font-family:var(--mono);font-size:12px;color:var(--gold)">STAGE ${String(i+1).padStart(2,"0")}</span> &nbsp;${s[0]}</h5><p>${s[1]}</p><span class="who">OWNER · ${s[2]} &nbsp;&nbsp;│&nbsp;&nbsp; PLANE · ${laneName[s[3]]}</span>`;
+  };
+  showStage(0);
+  el.querySelectorAll("#"+key+"-stepper .step").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      el.querySelectorAll("#"+key+"-stepper .step").forEach(b=>b.classList.remove("on"));
+      btn.classList.add("on"); showStage(+btn.dataset.i);
+    });
+  });
+
+  /* filter behavior */
+  const q = document.getElementById(key+"-q"), tbl = document.getElementById(key+"-tbl"),
+        cnt = document.getElementById(key+"-count"), nohit = document.getElementById(key+"-nohit");
+  let grp = "*";
+  const rows = [...tbl.tBodies[0].rows].map(tr=>({tr, txt:(tr.textContent||"").toLowerCase(), g:tr.dataset.g,
+    raw:[...tr.cells].map(c=>c.textContent)}));
+  const hilite = (raw, term)=>{
+    if(!term) return esc(raw);
+    const re = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"gi");
+    let out = "", last = 0, m;
+    while((m = re.exec(raw)) !== null){
+      out += esc(raw.slice(last, m.index)) + "<mark>" + esc(m[0]) + "</mark>";
+      last = m.index + m[0].length;
+      if(m.index === re.lastIndex) re.lastIndex++;
+    }
+    return out + esc(raw.slice(last));
+  };
+  const apply = ()=>{
+    const term = q.value.trim().toLowerCase();
+    let vis = 0;
+    rows.forEach(r=>{
+      const okG = grp==="*" || r.g===grp;
+      const okT = !term || r.txt.toLowerCase().includes(term);
+      const show = okG && okT;
+      r.tr.style.display = show ? "" : "none";
+      if(show){ vis++;
+        [...r.tr.cells].forEach((c,ci)=>{ c.innerHTML = hilite(r.raw[ci], term); });
+      }
+    });
+    cnt.textContent = vis + " of " + rows.length + " shown";
+    nohit.style.display = vis ? "none" : "block";
+  };
+  q.addEventListener("input",apply);
+  if(d.groups){
+    document.getElementById(key+"-chips").addEventListener("click",e=>{
+      const b = e.target.closest(".grp-chip"); if(!b) return;
+      grp = b.dataset.g;
+      document.querySelectorAll("#"+key+"-chips .grp-chip").forEach(x=>x.classList.toggle("on",x===b));
+      apply();
+    });
+  }
+  apply();
+
+  /* decision checkboxes */
+  el.querySelectorAll("[data-dec]").forEach(cb=>{
+    cb.addEventListener("change",()=>cb.closest(".dec").classList.toggle("done",cb.checked));
+  });
+}
+
+/* next-steps action lists */
+function renderNext(){
+  const items = {
+    "next-cm":[
+      "Confirm whether Customer, Vendor and Internal cases all remain in D365 CE and whether TraceGains or another quality solution is used for vendor/internal corrective actions.",
+      "Finalize Type, Category, Subcategory, department ownership, risk questions, thresholds, reassessment permissions and investigation requirements.",
+      "Map each financial request type to the exact F&O transaction, required approval and return-status fields.",
+      "Define closure criteria, post-resolution follow-up, repeat-issue thresholds, portal scope, SLAs and retention requirements."
+    ],
+    "next-sr":[
+      "Finalize standard versus large sample criteria and thresholds by business unit or product type.",
+      "Confirm F&O transaction type for each fulfillment scenario, including small samples, LTL, $0 orders, journals, donations and distributor-handled inventory.",
+      "Define prospect/sample-only account strategy, proprietary product restrictions, product/site capability data and recommendation inputs.",
+      "Confirm R&D/project linkage, cross-border data, F&O visibility fields, follow-up requirements and Case/CERT escalation criteria."
+    ],
+    "next-cr":[
+      "Confirm HighRadius form and integration capabilities, reusable application data and external assessment outputs.",
+      "Finalize financial-impact, reactivation, exposure and materiality rules, approval thresholds and payment-term cost-of-capital calculation.",
+      "Define CE-only versus F&O contact/classification fields and required activation tasks by scenario.",
+      "Confirm integration timing, error ownership, security, retention and the minimum authoritative values returned from F&O."
+    ]
+  };
+  Object.entries(items).forEach(([id,list])=>{
+    document.getElementById(id).innerHTML = list.map(t=>
+      `<label class="dec"><input type="checkbox" data-dec><span><span>${t}</span></span></label>`).join("");
+  });
+  document.getElementById("next").querySelectorAll("[data-dec]").forEach(cb=>{
+    cb.addEventListener("change",()=>cb.closest(".dec").classList.toggle("done",cb.checked));
+  });
+}
+
+/* tabs */
+const tabs = document.querySelectorAll(".tab");
+function activate(id){
+  tabs.forEach(t=>t.setAttribute("aria-selected", t.dataset.panel===id ? "true":"false"));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.toggle("active", p.id===id));
+  window.scrollTo({top:0});
+}
+tabs.forEach(t=>t.addEventListener("click",()=>activate(t.dataset.panel)));
+document.querySelectorAll("[data-goto]").forEach(b=>b.addEventListener("click",()=>activate(b.dataset.goto)));
+
+/* back to top */
+const bt = document.getElementById("backtop");
+addEventListener("scroll",()=>bt.classList.toggle("show", scrollY>600),{passive:true});
+bt.addEventListener("click",()=>scrollTo({top:0,behavior:"smooth"}));
+
+/* boot */
+["cm","sr","cr"].forEach(renderProcess);
+renderNext();
+</script>
+</body>
+</html>
