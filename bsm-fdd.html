@@ -187,8 +187,17 @@ mark{background:var(--gold-soft);color:inherit;border-radius:2px;padding:0 1px}
 .status-flow span.hi{border-color:var(--gold);background:var(--gold-soft);color:var(--ink)}
 
 /* open decisions */
-.dec{display:flex;gap:12px;padding:13px 16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:9px;font-size:13.5px;align-items:flex-start}
+.dec{display:block;padding:13px 16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:9px;font-size:13.5px}
+.dec-main{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
 .dec input{margin-top:3px;accent-color:var(--fo);width:15px;height:15px;flex:none;cursor:pointer}
+.dec-tools{margin:8px 0 0 27px}
+.cbtn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:6px;padding:4px 10px;cursor:pointer}
+.cbtn:hover{border-color:var(--gold);color:var(--ink)}
+.cbtn.has{border-color:var(--gold);background:var(--gold-soft);color:var(--ink)}
+.cbox{display:block;width:calc(100% - 27px);margin:8px 0 2px 27px;font-family:var(--body);font-size:13px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 11px;resize:vertical;line-height:1.5}
+.cbox:focus{outline:none;border-color:var(--gold)}
+.export-btn{float:right;font-family:var(--mono);font-size:11px;letter-spacing:.05em;background:var(--card);border:1px solid var(--line);color:var(--ink-soft);border-radius:7px;padding:5px 12px;cursor:pointer}
+.export-btn:hover{border-color:var(--gold);color:var(--ink)}
 .dec b{color:var(--ink);display:block;margin-bottom:2px}
 .dec span{color:var(--ink-soft)}
 .dec.done{opacity:.55}
@@ -316,7 +325,8 @@ footer{border-top:1px solid var(--line);padding:26px 20px 40px;text-align:center
     </tbody>
   </table></div>
 
-  <div class="grid cols-3" style="margin-top:26px">
+  <div style="margin-top:26px;text-align:right"><button class="export-btn" data-export="next" type="button" style="float:none">Export review notes</button></div>
+  <div class="grid cols-3" style="margin-top:10px">
     <div>
       <h3 class="sub-sec" style="margin-top:0"><span class="tick"></span>Case Management</h3>
       <div id="next-cm"></div>
@@ -924,10 +934,15 @@ function renderProcess(key){
   h += `</tbody></table><div class="no-hit" id="${key}-nohit">No requirements match that filter.</div></div>`;
 
   /* open decisions */
-  h += `<h3 class="sub-sec"><span class="tick"></span>Open Design Decisions & Customer Validation Items</h3>
-  <p class="dec-note">Check items as they are confirmed in review — checkmarks are session aids and reset on reload.</p>`;
+  h += `<h3 class="sub-sec"><span class="tick"></span>Open Design Decisions & Customer Validation Items
+        <button class="export-btn" data-export="${key}" type="button">Export review notes</button></h3>
+  <p class="dec-note">Check items as they are confirmed and capture comments inline. Notes save in this browser where storage is available — use <b>Export review notes</b> to copy/download a summary for the team.</p>`;
   d.open.forEach(([t,n],i)=>{
-    h += `<label class="dec"><input type="checkbox" data-dec><span><b>${t}</b><span>${n}</span></span></label>`;
+    h += `<div class="dec" data-key="${key}:${i}" data-title="${t.replace(/"/g,"&quot;")}">
+      <label class="dec-main"><input type="checkbox" data-dec><span><b>${t}</b><span>${n}</span></span></label>
+      <div class="dec-tools"><button class="cbtn" type="button">＋ Comment</button></div>
+      <textarea class="cbox" rows="2" placeholder="Review comment — decision, owner, follow-up…" hidden></textarea>
+    </div>`;
   });
 
   el.innerHTML = h;
@@ -1019,11 +1034,12 @@ function renderNext(){
     ]
   };
   Object.entries(items).forEach(([id,list])=>{
-    document.getElementById(id).innerHTML = list.map(t=>
-      `<label class="dec"><input type="checkbox" data-dec><span><span>${t}</span></span></label>`).join("");
-  });
-  document.getElementById("next").querySelectorAll("[data-dec]").forEach(cb=>{
-    cb.addEventListener("change",()=>cb.closest(".dec").classList.toggle("done",cb.checked));
+    document.getElementById(id).innerHTML = list.map((t,i)=>
+      `<div class="dec" data-key="${id}:${i}" data-title="${t.replace(/"/g,"&quot;")}">
+        <label class="dec-main"><input type="checkbox" data-dec><span><span>${t}</span></span></label>
+        <div class="dec-tools"><button class="cbtn" type="button">＋ Comment</button></div>
+        <textarea class="cbox" rows="2" placeholder="Review comment — decision, owner, follow-up…" hidden></textarea>
+      </div>`).join("");
   });
 }
 
@@ -1045,6 +1061,59 @@ bt.addEventListener("click",()=>scrollTo({top:0,behavior:"smooth"}));
 /* boot */
 ["cm","sr","cr"].forEach(renderProcess);
 renderNext();
+
+/* open-item comments: toggle, persist (best-effort), export */
+const store = {
+  get k(){ return "bsmfdd-notes"; },
+  load(){ try{ return JSON.parse(localStorage.getItem(this.k)||"{}"); }catch(e){ return {}; } },
+  save(o){ try{ localStorage.setItem(this.k, JSON.stringify(o)); }catch(e){} }
+};
+let NOTES = store.load();
+const syncBtn = dec => {
+  const btn = dec.querySelector(".cbtn"), box = dec.querySelector(".cbox");
+  const has = box.value.trim().length > 0;
+  btn.classList.toggle("has", has);
+  btn.textContent = has ? "✓ Comment added" : "＋ Comment";
+};
+document.querySelectorAll(".dec[data-key]").forEach(dec=>{
+  const k = dec.dataset.key, box = dec.querySelector(".cbox"), cb = dec.querySelector("[data-dec]");
+  const saved = NOTES[k];
+  if(saved){ box.value = saved.t || ""; cb.checked = !!saved.c;
+    dec.classList.toggle("done", cb.checked); if(box.value) box.hidden = false; }
+  syncBtn(dec);
+  dec.querySelector(".cbtn").addEventListener("click", ()=>{
+    box.hidden = !box.hidden; if(!box.hidden) box.focus();
+  });
+  const persist = ()=>{ NOTES[dec.dataset.key] = {c: cb.checked, t: box.value}; store.save(NOTES); };
+  box.addEventListener("input", ()=>{ syncBtn(dec); persist(); });
+  cb.addEventListener("change", ()=>{ dec.classList.toggle("done", cb.checked); persist(); });
+});
+document.querySelectorAll("[data-export]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const key = btn.dataset.export;
+    const isNext = key === "next";
+    const title = isNext ? "Next-Step Actions" : DATA[key].title + " — Open Items";
+    const lines = [`# ${title} — Review Notes`, `_Exported ${new Date().toLocaleString()}_`, ""];
+    const sel = isNext ? `.dec[data-key^="next-"]` : `.dec[data-key^="${key}:"]`;
+    let lastGrp = "";
+    document.querySelectorAll(sel).forEach(dec=>{
+      if(isNext){
+        const grp = {"next-cm":"Case Management","next-sr":"Sample Requests","next-cr":"Customer Requests"}[dec.dataset.key.split(":")[0]];
+        if(grp !== lastGrp){ lines.push(`\n## ${grp}`); lastGrp = grp; }
+      }
+      const done = dec.querySelector("[data-dec]").checked ? "x" : " ";
+      const t = dec.dataset.title, c = dec.querySelector(".cbox").value.trim();
+      lines.push(`- [${done}] **${t}**` + (c ? `\n  - ${c.replace(/\n/g, "\n    ")}` : ""));
+    });
+    const md = lines.join("\n");
+    if(navigator.clipboard) navigator.clipboard.writeText(md).catch(()=>{});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([md], {type:"text/markdown"}));
+    a.download = `bsm-fdd-${isNext ? "next-steps" : key}-review-notes.md`; a.click(); URL.revokeObjectURL(a.href);
+    const orig = btn.textContent; btn.textContent = "Copied + downloaded ✓";
+    setTimeout(()=>btn.textContent = orig, 2200);
+  });
+});
 
 /* lightbox */
 const lb = document.getElementById("lightbox");
