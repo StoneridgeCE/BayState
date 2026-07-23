@@ -73,7 +73,7 @@ body{font-family:var(--body);background:var(--paper);color:var(--ink);font-size:
 .lb-close{position:absolute;top:14px;right:18px;background:none;border:1px solid rgba(238,243,236,.45);color:#eef3ec;border-radius:8px;padding:6px 12px;font-family:var(--mono);cursor:pointer;z-index:2}
 
 /* ---------- Tab bar ---------- */
-.tabbar{position:sticky;top:0;z-index:50;background:rgba(244,246,248,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.tabbar{position:sticky;top:0;z-index:50;background:rgba(247,245,238,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .tabbar-inner{max-width:1180px;margin:0 auto;padding:0 20px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
 .tabbar-inner::-webkit-scrollbar{display:none}
 .tab{appearance:none;background:none;border:none;cursor:pointer;font-family:var(--display);font-weight:500;font-size:14px;color:var(--ink-soft);padding:16px 14px 13px;border-bottom:3px solid transparent;white-space:nowrap;transition:color .15s}
@@ -185,6 +185,21 @@ mark{background:var(--gold-soft);color:inherit;border-radius:2px;padding:0 1px}
 .status-flow{display:flex;flex-wrap:wrap;gap:7px}
 .status-flow span{font-size:12px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 12px;color:var(--ink-soft)}
 .status-flow span.hi{border-color:var(--gold);background:var(--gold-soft);color:var(--ink)}
+
+/* section sub-tabs */
+.subtabs{display:flex;position:sticky;top:50px;z-index:40;margin:20px 0 22px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow-x:auto;scrollbar-width:none}
+.subtabs::-webkit-scrollbar{display:none}
+.subtab{appearance:none;flex:1 1 auto;display:flex;flex-direction:column;align-items:flex-start;gap:3px;font-family:var(--display);font-weight:600;font-size:13.5px;background:none;border:none;border-right:1px solid var(--line);color:var(--ink-soft);padding:13px 18px 11px;cursor:pointer;position:relative;white-space:nowrap;transition:background .13s,color .13s}
+.subtab:last-child{border-right:none}
+.subtab .st-num{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;color:var(--sys)}
+.subtab .st-label{line-height:1.15}
+.subtab::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent;transition:background .13s}
+.subtab:hover{background:var(--paper);color:var(--ink)}
+.subtab.on{background:var(--ink);color:#fff}
+.subtab.on .st-num{color:var(--gold)}
+.subtab.on::after{background:var(--gold)}
+.sub-panel{display:none}
+.sub-panel.on{display:block}
 
 /* open decisions */
 .dec{display:block;padding:13px 16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:9px;font-size:13.5px}
@@ -865,6 +880,14 @@ function renderProcess(key){
         <span class="stat-chip"><b>${d.open.length}</b> open decisions</span></div>`;
   h += `<div class="callout"><b>Design principle.</b> ${d.principle}</div>`;
 
+  /* section sub-tabs */
+  const secs = [["0","Current State"],["1","Future State"],["2","Scenarios & Personas"]];
+  if(d.extras && d.extras.length) secs.push(["3","Design Detail"]);
+  secs.push(["4","Requirements"],["5","Open Items"]);
+  h += `<div class="subtabs" role="tablist" aria-label="${d.title} sections">` +
+       secs.map(([i,l],x)=>`<button class="subtab${x===0?" on":""}" role="tab" data-sp="${i}"><span class="st-num">${String(x+1).padStart(2,"0")}</span><span class="st-label">${l}</span></button>`).join("") + `</div>`;
+  h += `<div class="sub-panel on" data-sp="0">`;
+
   /* current state */
   h += `<h3 class="sub-sec"><span class="tick"></span>Current-State Understanding</h3>`;
   d.current.forEach(([t,b])=>{ h += `<details class="acc"><summary>${t}</summary><div class="acc-body"><p>${b}</p></div></details>`; });
@@ -873,6 +896,8 @@ function renderProcess(key){
   h += `<h3 class="sub-sec"><span class="tick"></span>Current-State Pain Points</h3><div class="grid cols-2">`;
   d.pains.forEach(p=>{ h += `<div class="pain">${p}</div>`; });
   h += `</div>`;
+
+  h += `</div><div class="sub-panel" data-sp="1">`;
 
   /* figures */
   if(typeof FIGS!=="undefined" && FIGS[key]){
@@ -890,6 +915,13 @@ function renderProcess(key){
   });
   h += `</div><div class="step-detail" id="${key}-stepdetail"></div>`;
 
+  /* statuses */
+  h += `<h3 class="sub-sec"><span class="tick"></span>Recommended Statuses</h3><div class="status-flow">`;
+  d.statuses.forEach(s=>{ h += `<span${/F&O|Approved|Closed|Resolved/.test(s)?' class="hi"':""}>${s}</span>`; });
+  h += `</div>`;
+
+  h += `</div><div class="sub-panel" data-sp="2">`;
+
   /* scenarios */
   h += `<h3 class="sub-sec"><span class="tick"></span>Scenario Design & Examples</h3>`;
   d.scenarios.forEach(([t,b])=>{
@@ -902,18 +934,17 @@ function renderProcess(key){
   d.personas.forEach(([r,x])=>{ h += `<tr><td class="role">${r}</td><td>${x}</td></tr>`; });
   h += `</tbody></table></div></div></details>`;
 
-  /* statuses */
-  h += `<h3 class="sub-sec"><span class="tick"></span>Recommended Statuses</h3><div class="status-flow">`;
-  d.statuses.forEach(s=>{ h += `<span${/F&O|Approved|Closed|Resolved/.test(s)?' class="hi"':""}>${s}</span>`; });
-  h += `</div>`;
-
   /* extras */
+  h += `</div>`;
   if(d.extras && d.extras.length){
+    h += `<div class="sub-panel" data-sp="3">`;
     h += `<h3 class="sub-sec"><span class="tick"></span>Supporting Design Detail</h3>`;
     d.extras.forEach(([t,b])=>{ h += `<details class="acc"><summary>${t}</summary><div class="acc-body">${b}</div></details>`; });
+    h += `</div>`;
   }
 
   /* requirements explorer */
+  h += `<div class="sub-panel" data-sp="4">`;
   h += `<h3 class="sub-sec"><span class="tick"></span>High-Level Requirements</h3>
   <div class="req-tools">
     <div class="req-search">
@@ -933,6 +964,8 @@ function renderProcess(key){
   });
   h += `</tbody></table><div class="no-hit" id="${key}-nohit">No requirements match that filter.</div></div>`;
 
+  h += `</div><div class="sub-panel" data-sp="5">`;
+
   /* open decisions */
   h += `<h3 class="sub-sec"><span class="tick"></span>Open Design Decisions & Customer Validation Items
         <button class="export-btn" data-export="${key}" type="button">Export review notes</button></h3>
@@ -944,8 +977,18 @@ function renderProcess(key){
       <textarea class="cbox" rows="2" placeholder="Review comment — decision, owner, follow-up…" hidden></textarea>
     </div>`;
   });
+  h += `</div>`;
 
   el.innerHTML = h;
+
+  /* sub-tab behavior */
+  el.querySelectorAll(".subtab").forEach(b=>b.addEventListener("click",()=>{
+    el.querySelectorAll(".subtab").forEach(x=>x.classList.toggle("on",x===b));
+    el.querySelectorAll(".sub-panel").forEach(p=>p.classList.toggle("on",p.dataset.sp===b.dataset.sp));
+    const bar = el.querySelector(".subtabs");
+    const y = bar.getBoundingClientRect().top + scrollY - 56;
+    if(scrollY > y) scrollTo({top:y});
+  }));
 
   /* stepper behavior */
   const detail = document.getElementById(key+"-stepdetail");
